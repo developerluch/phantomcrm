@@ -128,6 +128,8 @@ type Config struct {
 	JWTSecret           string
 	DiscordClientID     string
 	DiscordClientSecret string
+	GoogleClientID      string
+	GoogleClientSecret  string
 }
 
 func MustLoad() *Config {
@@ -222,6 +224,8 @@ func MustLoad() *Config {
 		JWTSecret:           os.Getenv("JWT_SECRET"),
 		DiscordClientID:     os.Getenv("DISCORD_CLIENT_ID"),
 		DiscordClientSecret: os.Getenv("DISCORD_CLIENT_SECRET"),
+		GoogleClientID:      os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret:  os.Getenv("GOOGLE_CLIENT_SECRET"),
 	}
 
 	if cfg.LogLevel == "" {

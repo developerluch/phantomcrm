@@ -77,6 +77,7 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 
 	// Auth routes (unauthenticated)
 	mux.HandleFunc("POST /api/v1/auth/discord", s.handleDiscordAuth)
+	mux.HandleFunc("POST /api/v1/auth/google", s.handleGoogleAuth)
 	mux.HandleFunc("POST /api/v1/auth/login", s.handleLogin)
 	mux.HandleFunc("POST /api/v1/auth/register", s.handleRegister)
 	mux.HandleFunc("POST /api/v1/auth/refresh", s.handleRefresh)

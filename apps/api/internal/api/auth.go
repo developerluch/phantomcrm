@@ -39,6 +39,11 @@ type discordAuthRequest struct {
 	RedirectURI string `json:"redirectUri"`
 }
 
+type googleAuthRequest struct {
+	Code        string `json:"code"`
+	RedirectURI string `json:"redirectUri"`
+}
+
 type refreshRequest struct {
 	RefreshToken string `json:"refreshToken"`
 }
@@ -276,6 +281,141 @@ func (s *Server) handleDiscordAuth(w http.ResponseWriter, r *http.Request) {
 		_ = s.db.UpdateUser(r.Context(), user.ID, updates)
 		// Re-fetch to get updated data
 		user, _ = s.db.GetUserByID(r.Context(), user.ID)
+	}
+
+	if !user.IsActive {
+		jsonError(w, "account disabled", http.StatusForbidden)
+		return
+	}
+
+	s.db.UpdateLastLogin(r.Context(), user.ID)
+	s.issueTokens(w, r, user)
+}
+
+// handleGoogleAuth exchanges a Google OAuth2 code for JWT tokens.
+// Mirrors the Discord flow: code exchange → userinfo endpoint → find-or-create user → issueTokens.
+// Links to an existing account (by email) when a user's first non-Google sign-in was Discord or email/password.
+func (s *Server) handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
+	var req googleAuthRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.Code == "" {
+		jsonError(w, "code required", http.StatusBadRequest)
+		return
+	}
+
+	tokenResp, err := s.exchangeGoogleCode(req.Code, req.RedirectURI)
+	if err != nil {
+		log.Printf("auth: google token exchange error (redirectURI=%s, codeLen=%d): %v", req.RedirectURI, len(req.Code), err)
+		jsonError(w, "google authentication failed", http.StatusUnauthorized)
+		return
+	}
+
+	googleUser, err := s.fetchGoogleUser(tokenResp.AccessToken)
+	if err != nil {
+		log.Printf("auth: google user fetch error: %v", err)
+		jsonError(w, "failed to fetch google user", http.StatusInternalServerError)
+		return
+	}
+
+	if !googleUser.EmailVerified {
+		jsonError(w, "Google email is not verified.", http.StatusForbidden)
+		return
+	}
+	if googleUser.Sub == "" || googleUser.Email == "" {
+		jsonError(w, "google returned incomplete profile", http.StatusBadGateway)
+		return
+	}
+
+	// 1) Match on google_id first
+	user, err := s.db.GetUserByGoogleID(r.Context(), googleUser.Sub)
+	if err != nil {
+		log.Printf("auth: google db error: %v", err)
+		jsonError(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	// 2) Otherwise match on email and link
+	if user == nil {
+		existing, err := s.db.GetUserByEmail(r.Context(), googleUser.Email)
+		if err != nil {
+			log.Printf("auth: google email lookup error: %v", err)
+			jsonError(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if existing != nil {
+			sub := googleUser.Sub
+			updates := db.UserUpdate{GoogleID: &sub}
+			if googleUser.Name != "" {
+				name := googleUser.Name
+				updates.DisplayName = &name
+			}
+			if googleUser.Picture != "" {
+				avatar := googleUser.Picture
+				updates.AvatarURL = &avatar
+			}
+			if err := s.db.UpdateUser(r.Context(), existing.ID, updates); err != nil {
+				log.Printf("auth: google link user error: %v", err)
+				jsonError(w, "failed to link account", http.StatusInternalServerError)
+				return
+			}
+			user, _ = s.db.GetUserByID(r.Context(), existing.ID)
+		}
+	} else {
+		// Refresh profile fields on existing google-linked user
+		updates := db.UserUpdate{}
+		if googleUser.Name != "" && googleUser.Name != user.DisplayName {
+			name := googleUser.Name
+			updates.DisplayName = &name
+		}
+		if googleUser.Picture != "" && googleUser.Picture != user.AvatarURL {
+			avatar := googleUser.Picture
+			updates.AvatarURL = &avatar
+		}
+		if updates.DisplayName != nil || updates.AvatarURL != nil {
+			_ = s.db.UpdateUser(r.Context(), user.ID, updates)
+			user, _ = s.db.GetUserByID(r.Context(), user.ID)
+		}
+	}
+
+	// 3) Create a new user if neither google_id nor email matched
+	if user == nil {
+		agentRole, err := s.db.GetRoleByName(r.Context(), "agent")
+		if err != nil || agentRole == nil {
+			log.Printf("auth: failed to get agent role: %v", err)
+			jsonError(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		displayName := googleUser.Name
+		if displayName == "" {
+			displayName = strings.Split(googleUser.Email, "@")[0]
+		}
+
+		newUser := db.User{
+			ID:          generateUUID(),
+			Email:       googleUser.Email,
+			GoogleID:    googleUser.Sub,
+			DisplayName: displayName,
+			AvatarURL:   googleUser.Picture,
+			RoleID:      agentRole.ID,
+			IsActive:    true,
+		}
+
+		if err := s.db.CreateUser(r.Context(), newUser); err != nil {
+			log.Printf("auth: create google user error: %v", err)
+			jsonError(w, "failed to create user", http.StatusInternalServerError)
+			return
+		}
+
+		user, err = s.db.GetUserByID(r.Context(), newUser.ID)
+		if err != nil || user == nil {
+			log.Printf("auth: refetch google user error: %v", err)
+			jsonError(w, "internal error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	if !user.IsActive {
@@ -613,6 +753,94 @@ func (s *Server) checkGuildMembership(discordUserID string) (bool, error) {
 	}
 	body, _ := io.ReadAll(resp.Body)
 	return false, fmt.Errorf("discord API error %d: %s", resp.StatusCode, string(body))
+}
+
+// --- Google OAuth helpers ---
+
+type googleTokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	ExpiresIn    int    `json:"expires_in"`
+	RefreshToken string `json:"refresh_token"`
+	Scope        string `json:"scope"`
+	IDToken      string `json:"id_token"`
+	TokenType    string `json:"token_type"`
+}
+
+type googleUserResponse struct {
+	Sub           string `json:"sub"`
+	ID            string `json:"id"` // v2 userinfo returns "id" (= sub); kept for older endpoints
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	VerifiedEmail bool   `json:"verified_email"` // v2 userinfo uses this spelling
+	Name          string `json:"name"`
+	Picture       string `json:"picture"`
+}
+
+func (s *Server) exchangeGoogleCode(code, redirectURI string) (*googleTokenResponse, error) {
+	formData := url.Values{
+		"client_id":     {s.cfg.GoogleClientID},
+		"client_secret": {s.cfg.GoogleClientSecret},
+		"grant_type":    {"authorization_code"},
+		"code":          {code},
+		"redirect_uri":  {redirectURI},
+	}
+
+	log.Printf("auth: exchanging google code, redirect_uri=%s, client_id=%s", redirectURI, s.cfg.GoogleClientID)
+
+	req, err := http.NewRequest("POST", "https://oauth2.googleapis.com/token", strings.NewReader(formData.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("google token exchange failed (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var tokenResp googleTokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+		return nil, fmt.Errorf("decode google token response: %w", err)
+	}
+	return &tokenResp, nil
+}
+
+func (s *Server) fetchGoogleUser(accessToken string) (*googleUserResponse, error) {
+	req, err := http.NewRequest("GET", "https://www.googleapis.com/oauth2/v2/userinfo", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("google user fetch failed (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var user googleUserResponse
+	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
+		return nil, fmt.Errorf("decode google user response: %w", err)
+	}
+	// v2 userinfo returns "id" and "verified_email" instead of "sub"/"email_verified"
+	if user.Sub == "" {
+		user.Sub = user.ID
+	}
+	if !user.EmailVerified && user.VerifiedEmail {
+		user.EmailVerified = true
+	}
+	return &user, nil
 }
 
 // generateUUID returns a v4 UUID string using crypto/rand.
