@@ -1,0 +1,5 @@
+.git
+.env
+.env.*
+vipa-bot
+vipa-api

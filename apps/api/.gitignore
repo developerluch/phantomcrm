@@ -1,0 +1,8 @@
+/vipa-bot
+/vipa-api
+.env
+.env.*
+!.env.example
+
+.railway/
+.railway-snapshot-*.env
