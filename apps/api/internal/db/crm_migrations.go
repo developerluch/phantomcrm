@@ -148,3 +148,86 @@ func (d *DB) migrateCRMM1(ctx context.Context) error {
 
 	return nil
 }
+
+// migrateCRMM2 runs the CRM M2A layer (Phase 42): unified Conversations Inbox.
+// Adds conversations, messages, and message_templates tables to back the
+// polymorphic ChannelSender contract. Additive only — legacy
+// whatsapp_conversations / whatsapp_messages tables remain in place.
+func (d *DB) migrateCRMM2(ctx context.Context) error {
+	stmts := []string{
+		// ── Conversations: one open thread per (contact, channel, provider) ──
+		`CREATE TABLE IF NOT EXISTS conversations (
+			id                          TEXT PRIMARY KEY,
+			contact_id                  TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+			channel                     TEXT NOT NULL,
+			provider                    TEXT NOT NULL,
+			external_thread_id          TEXT,
+			status                      TEXT NOT NULL DEFAULT 'open',
+			assigned_agent_id           TEXT,
+			last_inbound_at             TIMESTAMPTZ,
+			last_outbound_at            TIMESTAMPTZ,
+			unread_count                INTEGER NOT NULL DEFAULT 0,
+			whatsapp_window_expires_at  TIMESTAMPTZ,
+			snooze_until                TIMESTAMPTZ,
+			created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+			updated_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
+		)`,
+		`CREATE INDEX IF NOT EXISTS conversations_contact_idx          ON conversations(contact_id)`,
+		`CREATE INDEX IF NOT EXISTS conversations_open_idx             ON conversations(status, last_inbound_at DESC) WHERE status = 'open'`,
+		`CREATE INDEX IF NOT EXISTS conversations_channel_assigned_idx ON conversations(channel, assigned_agent_id)`,
+		`CREATE INDEX IF NOT EXISTS conversations_last_inbound_idx     ON conversations(last_inbound_at DESC, id DESC)`,
+
+		// ── Messages: append-only, both directions, all channels ──
+		`CREATE TABLE IF NOT EXISTS messages (
+			id                       TEXT PRIMARY KEY,
+			conversation_id          TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+			contact_id               TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+			direction                TEXT NOT NULL,
+			channel                  TEXT NOT NULL,
+			provider                 TEXT NOT NULL,
+			external_message_id      TEXT,
+			from_addr                TEXT,
+			to_addr                  TEXT,
+			body                     TEXT,
+			media_urls               JSONB DEFAULT '[]'::jsonb,
+			template_id              TEXT,
+			template_variables       JSONB DEFAULT '{}'::jsonb,
+			status                   TEXT NOT NULL DEFAULT 'queued',
+			error_code               TEXT,
+			error_message            TEXT,
+			sent_by_agent_id         TEXT,
+			sent_by_automation_id    TEXT,
+			cost_cents               INTEGER,
+			idempotency_key          TEXT,
+			created_at               TIMESTAMPTZ NOT NULL DEFAULT now()
+		)`,
+		`CREATE INDEX IF NOT EXISTS messages_conversation_idx ON messages(conversation_id, created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS messages_contact_idx      ON messages(contact_id, created_at DESC)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS messages_idempotency_uniq ON messages(conversation_id, idempotency_key) WHERE idempotency_key IS NOT NULL`,
+
+		// ── Message templates (WhatsApp/SMS pre-approved templates) ──
+		`CREATE TABLE IF NOT EXISTS message_templates (
+			id           TEXT PRIMARY KEY,
+			name         TEXT NOT NULL,
+			channel      TEXT NOT NULL,
+			provider     TEXT NOT NULL,
+			external_id  TEXT,
+			category     TEXT,
+			language     TEXT NOT NULL DEFAULT 'en',
+			body         TEXT NOT NULL,
+			variables    JSONB DEFAULT '[]'::jsonb,
+			status       TEXT NOT NULL DEFAULT 'draft',
+			created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+			updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+		)`,
+		`CREATE INDEX IF NOT EXISTS message_templates_channel_status_idx ON message_templates(channel, status)`,
+	}
+
+	for _, q := range stmts {
+		if _, err := d.pool.ExecContext(ctx, q); err != nil {
+			return fmt.Errorf("crm m2 migrate: %w", err)
+		}
+	}
+
+	return nil
+}
