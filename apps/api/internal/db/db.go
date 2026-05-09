@@ -1036,6 +1036,11 @@ func (d *DB) migrate(ctx context.Context) error {
 		return err
 	}
 
+	// ── Phase 42: CRM M2A (conversations, messages, message_templates) ──
+	if err := d.migrateCRMM2(ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
 

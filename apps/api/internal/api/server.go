@@ -10,8 +10,10 @@ import (
 	gorillaws "github.com/gorilla/websocket"
 
 	"phantomcrm-api/internal/api/websocket"
+	"phantomcrm-api/internal/channels"
 	"phantomcrm-api/internal/config"
 	"phantomcrm-api/internal/db"
+	"phantomcrm-api/internal/events"
 	"phantomcrm-api/internal/repo"
 	"phantomcrm-api/internal/sms"
 )
@@ -38,6 +40,17 @@ type Server struct {
 	contactRepo   *repo.ContactRepo
 	tagRepo       *repo.TagRepo
 	smartListRepo *repo.SmartListRepo
+
+	// CRM M2A: conversations + messages + templates + outbound channel
+	// registry. Senders register at startup; handlers route by
+	// (channel, provider) at request time. eventPublisher persists
+	// message.received / message.sent / message.failed to the events
+	// table for the audit timeline.
+	conversationRepo *repo.ConversationRepo
+	messageRepo      *repo.MessageRepo
+	templateRepo     *repo.TemplateRepo
+	channelRegistry  *channels.Registry
+	eventPublisher   events.Publisher
 }
 
 // NewServer creates a new API server (no Discord session needed).
@@ -46,6 +59,10 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 	s.contactRepo = repo.NewContactRepo(database.Pool())
 	s.tagRepo = repo.NewTagRepo(database.Pool())
 	s.smartListRepo = repo.NewSmartListRepo(database.Pool())
+	s.conversationRepo = repo.NewConversationRepo(database.Pool())
+	s.messageRepo = repo.NewMessageRepo(database.Pool())
+	s.templateRepo = repo.NewTemplateRepo(database.Pool())
+	s.eventPublisher = events.NewPgPublisher(database.Pool())
 	s.smsClient = sms.NewClient(cfg.TwilioAccountSID, cfg.TwilioAuthToken, cfg.TwilioFromNumber)
 	if s.smsClient != nil {
 		log.Println("Twilio SMS client initialized")
@@ -54,6 +71,18 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 			log.Println("Twilio WhatsApp number configured")
 		}
 	}
+
+	// Channel registry: register Twilio senders when configured. Stub
+	// senders (Meta WA, Voice) are always registered so the registry can
+	// surface ErrUnsupported with a known provider name.
+	s.channelRegistry = channels.NewRegistry()
+	if s.smsClient != nil {
+		s.channelRegistry.Register(channels.NewTwilioSMSSender(s.smsClient))
+		s.channelRegistry.Register(channels.NewTwilioWhatsAppSender(s.smsClient))
+		log.Println("Channel senders registered: twilio sms, twilio whatsapp")
+	}
+	s.channelRegistry.Register(channels.NewMetaWhatsAppSender())
+	s.channelRegistry.Register(channels.NewVoiceStubSender("twilio"))
 
 	mux := http.NewServeMux()
 	s.mux = mux
@@ -442,6 +471,23 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 	mux.HandleFunc("DELETE /api/v1/crm/smartlists/{id}", auth(s.handleCRMDeleteSmartList))
 	mux.HandleFunc("POST   /api/v1/crm/smartlists/{id}/pin", auth(s.handleCRMPinSmartList))
 	mux.HandleFunc("POST   /api/v1/crm/smartlists/{id}/execute", auth(s.handleCRMExecuteSmartList))
+
+	// ── CRM M2A: conversations + messages (8) ─────────────────────────
+	mux.HandleFunc("GET    /api/v1/crm/conversations", auth(s.handleCRMListConversations))
+	mux.HandleFunc("GET    /api/v1/crm/conversations/{id}", auth(s.handleCRMGetConversation))
+	mux.HandleFunc("GET    /api/v1/crm/conversations/{id}/messages", auth(s.handleCRMListConversationMessages))
+	mux.HandleFunc("POST   /api/v1/crm/conversations/{id}/messages", auth(s.handleCRMSendMessage))
+	mux.HandleFunc("POST   /api/v1/crm/conversations/{id}/snooze", auth(s.handleCRMSnoozeConversation))
+	mux.HandleFunc("POST   /api/v1/crm/conversations/{id}/close", auth(s.handleCRMCloseConversation))
+	mux.HandleFunc("POST   /api/v1/crm/conversations/{id}/read", auth(s.handleCRMReadConversation))
+	mux.HandleFunc("POST   /api/v1/crm/conversations/{id}/assign", auth(s.handleCRMAssignConversation))
+	mux.HandleFunc("GET    /api/v1/crm/contacts/{id}/conversations", auth(s.handleCRMContactConversations))
+
+	// ── CRM M2A: message templates (4) ────────────────────────────────
+	mux.HandleFunc("GET    /api/v1/crm/templates", auth(s.handleCRMListTemplates))
+	mux.HandleFunc("POST   /api/v1/crm/templates", auth(s.handleCRMCreateTemplate))
+	mux.HandleFunc("PATCH  /api/v1/crm/templates/{id}", auth(s.handleCRMUpdateTemplate))
+	mux.HandleFunc("DELETE /api/v1/crm/templates/{id}", auth(s.handleCRMDeleteTemplate))
 
 	// Rate limiting: 500 requests per minute per IP (auth, health, ws are exempt)
 	limiter := newRateLimiter(500, time.Minute)
