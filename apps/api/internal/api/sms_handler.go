@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"phantomcrm-api/internal/api/websocket"
+	"phantomcrm-api/internal/channels"
 	"phantomcrm-api/internal/db"
 )
 
@@ -119,6 +120,14 @@ func (s *Server) validateTwilioSignature(r *http.Request) bool {
 }
 
 // handleTwilioWebhook receives inbound SMS from Twilio.
+//
+// Behavior:
+//   - Writes to the legacy `sms_messages` table for back-compat (recruit
+//     drip/timeline still reads from it).
+//   - Writes to the unified CRM M2A `conversations` + `messages` tables so
+//     the new Inbox surfaces the message.
+//   - Auto-creates a Contact if no match by phone (lifecycle='lead',
+//     source_type='inbound_sms').
 func (s *Server) handleTwilioWebhook(w http.ResponseWriter, r *http.Request) {
 	if !s.validateTwilioSignature(r) {
 		http.Error(w, "forbidden", http.StatusForbidden)
@@ -132,15 +141,14 @@ func (s *Server) handleTwilioWebhook(w http.ResponseWriter, r *http.Request) {
 	body := r.FormValue("Body")
 	sid := r.FormValue("MessageSid")
 
+	// Legacy: per-recruit sms_messages timeline.
 	recruit, _ := s.db.FindRecruitByPhone(r.Context(), from)
-
 	var recruitID *string
 	if recruit != nil {
 		recruitID = &recruit.ID
 	}
-
 	status := "received"
-	msg := &db.SmsMessage{
+	legacy := &db.SmsMessage{
 		RecruitID:  recruitID,
 		ToNumber:   s.cfg.TwilioFromNumber,
 		FromNumber: &from,
@@ -149,7 +157,7 @@ func (s *Server) handleTwilioWebhook(w http.ResponseWriter, r *http.Request) {
 		Status:     &status,
 		ProviderID: &sid,
 	}
-	s.db.CreateSmsMessage(r.Context(), msg)
+	s.db.CreateSmsMessage(r.Context(), legacy)
 
 	if recruit != nil {
 		s.hub.Publish(websocket.NewEvent("recruit:sms_received", map[string]interface{}{
@@ -157,6 +165,25 @@ func (s *Server) handleTwilioWebhook(w http.ResponseWriter, r *http.Request) {
 			"from":      from,
 			"body":      body,
 		}))
+	}
+
+	// Unified M2A: write into conversations + messages.
+	res, err := s.upsertInboundMessage(r.Context(), inboundMessage{
+		Phone:      from,
+		Body:       body,
+		ExternalID: sid,
+		Channel:    channels.ChannelSMS,
+		Provider:   "twilio",
+		SourceType: "inbound_sms",
+	})
+	if err != nil {
+		log.Printf("sms webhook: unified write: %v", err)
+	} else {
+		extra := map[string]any{}
+		if recruit != nil {
+			extra["recruitId"] = recruit.ID
+		}
+		s.broadcastInbound(res, extra)
 	}
 
 	// Return empty TwiML (no auto-reply)

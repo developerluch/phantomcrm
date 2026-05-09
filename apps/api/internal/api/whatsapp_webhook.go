@@ -8,12 +8,17 @@ import (
 	"time"
 
 	"phantomcrm-api/internal/api/websocket"
-	"phantomcrm-api/internal/db"
+	"phantomcrm-api/internal/channels"
 	"phantomcrm-api/internal/sms"
 )
 
 // handleWhatsAppWebhook receives inbound WhatsApp messages from Twilio.
 // Route: POST /api/v1/whatsapp/webhook (unauthenticated — Twilio calls directly)
+//
+// M2A: writes into the unified `conversations` + `messages` tables (no
+// longer touches legacy `whatsapp_conversations` / `whatsapp_messages`).
+// Extends the 24h customer-care window on every inbound. Opt-out keyword
+// handling and the legacy WS event "whatsapp:opted_out" are preserved.
 func (s *Server) handleWhatsAppWebhook(w http.ResponseWriter, r *http.Request) {
 	if !s.validateTwilioSignature(r) {
 		http.Error(w, "forbidden", http.StatusForbidden)
@@ -37,61 +42,61 @@ func (s *Server) handleWhatsAppWebhook(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	// 1. Find or create conversation
-	conv, err := s.db.FindOrCreateConversationByPhone(ctx, cleanPhone, profileName)
+	// Opt-out keywords short-circuit BEFORE the unified write so the
+	// recruit gets DNC'd and drip executions are cancelled even if the
+	// inbox write trips.
+	upperBody := strings.ToUpper(strings.TrimSpace(body))
+	isOptOut := upperBody == "STOP" || upperBody == "UNSUBSCRIBE" || upperBody == "CANCEL" || upperBody == "QUIT"
+
+	res, err := s.upsertInboundMessage(ctx, inboundMessage{
+		Phone:       cleanPhone,
+		ProfileName: profileName,
+		Body:        body,
+		ExternalID:  msgSid,
+		Channel:     channels.ChannelWhatsApp,
+		Provider:    "twilio",
+		SourceType:  "inbound_whatsapp",
+	})
 	if err != nil {
-		log.Printf("whatsapp webhook: find/create conversation: %v", err)
+		log.Printf("whatsapp webhook: unified write: %v", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	// 2. Store the message
-	msg := db.WhatsAppMessage{
-		ConversationID: conv.ID,
-		Sender:         profileName,
-		Body:           body,
-		IsFromContact:  true,
-	}
-	msgID, err := s.db.CreateMessage(ctx, msg)
-	if err != nil {
-		log.Printf("whatsapp webhook: create message: %v", err)
-	}
-
-	// Update conversation last_message_at
-	_ = s.db.UpdateConversationLastMessage(ctx, conv.ID, true)
-
-	// 3. Check for opt-out keywords
-	upperBody := strings.ToUpper(strings.TrimSpace(body))
-	if upperBody == "STOP" || upperBody == "UNSUBSCRIBE" || upperBody == "CANCEL" || upperBody == "QUIT" {
-		s.handleOptOut(ctx, cleanPhone, conv.ID)
+	if isOptOut {
+		s.handleOptOut(ctx, cleanPhone, res.Conversation.ID)
 		w.Header().Set("Content-Type", "text/xml")
 		w.Write([]byte("<Response></Response>"))
 		return
 	}
 
-	// 4. Try to match to a recruit
+	// Optional recruit enrichment for legacy listeners. The recruit
+	// linkage formerly persisted on whatsapp_conversations.recruit_id is
+	// no longer maintained — downstream consumers should match by
+	// contact_id instead.
 	recruit, _ := s.db.FindRecruitByPhone(ctx, cleanPhone)
-	if recruit != nil {
-		// Link conversation to recruit if not already linked
-		if conv.RecruitID == nil || *conv.RecruitID != recruit.ID {
-			_ = s.db.LinkConversationToRecruit(ctx, conv.ID, recruit.ID)
-		}
-	}
-
-	// 5. Broadcast WebSocket event
-	eventData := map[string]interface{}{
-		"conversationId": conv.ID,
-		"messageId":      msgID,
-		"from":           cleanPhone,
-		"body":           body,
-		"profileName":    profileName,
+	extra := map[string]any{
+		"from":        cleanPhone,
+		"body":        body,
+		"profileName": profileName,
 	}
 	if recruit != nil {
-		eventData["recruitId"] = recruit.ID
+		extra["recruitId"] = recruit.ID
 	}
-	s.hub.Publish(websocket.NewEvent("whatsapp:message_received", eventData))
+	s.broadcastInbound(res, extra)
+	// Legacy event for any consumer still listening.
+	if s.hub != nil {
+		s.hub.Publish(websocket.NewEvent("whatsapp:message_received", map[string]any{
+			"conversationId": res.Conversation.ID,
+			"messageId":      res.Message.ID,
+			"from":           cleanPhone,
+			"body":           body,
+			"profileName":    profileName,
+			"recruitId":      extra["recruitId"],
+		}))
+	}
 
-	// 6. Return empty TwiML (no auto-reply — drip campaign handles responses)
+	// Return empty TwiML (no auto-reply — drip campaign handles responses)
 	w.Header().Set("Content-Type", "text/xml")
 	w.Write([]byte("<Response></Response>"))
 }
