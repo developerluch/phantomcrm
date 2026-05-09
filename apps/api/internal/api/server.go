@@ -10,6 +10,7 @@ import (
 	gorillaws "github.com/gorilla/websocket"
 
 	"phantomcrm-api/internal/api/websocket"
+	"phantomcrm-api/internal/channels"
 	"phantomcrm-api/internal/config"
 	"phantomcrm-api/internal/db"
 	"phantomcrm-api/internal/repo"
@@ -38,6 +39,10 @@ type Server struct {
 	contactRepo   *repo.ContactRepo
 	tagRepo       *repo.TagRepo
 	smartListRepo *repo.SmartListRepo
+
+	// CRM M2A: outbound channel registry. Senders register at startup,
+	// handlers route by (channel, provider) at request time.
+	channelRegistry *channels.Registry
 }
 
 // NewServer creates a new API server (no Discord session needed).
@@ -54,6 +59,18 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 			log.Println("Twilio WhatsApp number configured")
 		}
 	}
+
+	// Channel registry: register Twilio senders when configured. Stub
+	// senders (Meta WA, Voice) are always registered so the registry can
+	// surface ErrUnsupported with a known provider name.
+	s.channelRegistry = channels.NewRegistry()
+	if s.smsClient != nil {
+		s.channelRegistry.Register(channels.NewTwilioSMSSender(s.smsClient))
+		s.channelRegistry.Register(channels.NewTwilioWhatsAppSender(s.smsClient))
+		log.Println("Channel senders registered: twilio sms, twilio whatsapp")
+	}
+	s.channelRegistry.Register(channels.NewMetaWhatsAppSender())
+	s.channelRegistry.Register(channels.NewVoiceStubSender("twilio"))
 
 	mux := http.NewServeMux()
 	s.mux = mux
