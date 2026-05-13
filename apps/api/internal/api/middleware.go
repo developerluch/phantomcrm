@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"crypto/subtle"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -22,10 +23,21 @@ func GetAuthUser(r *http.Request) *AuthUser {
 // It supports two modes:
 //  1. Legacy API_TOKEN: constant-time compare; injects a synthetic super_admin AuthUser.
 //  2. JWT: parses HS256 token; injects the embedded AuthUser.
+//
+// Diagnostic logging (added 2026-05-12 during backend-split triage) prints
+// the rejection reason and token length to make 401 debugging tractable when
+// frontend says "I'm sending a Bearer header but still getting 401." Logs
+// never contain the token itself.
 func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
-		if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
+		if auth == "" {
+			log.Printf("auth: 401 %s %s — missing Authorization header", r.Method, r.URL.Path)
+			jsonError(w, `unauthorized`, http.StatusUnauthorized)
+			return
+		}
+		if !strings.HasPrefix(auth, "Bearer ") {
+			log.Printf("auth: 401 %s %s — Authorization header not Bearer scheme (got %q)", r.Method, r.URL.Path, firstWord(auth))
 			jsonError(w, `unauthorized`, http.StatusUnauthorized)
 			return
 		}
@@ -45,17 +57,39 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		// Mode 2: JWT
-		if s.cfg.JWTSecret != "" {
-			user, err := ValidateAccessToken(s.cfg.JWTSecret, provided)
-			if err == nil && user != nil {
-				ctx := context.WithValue(r.Context(), authUserKey, user)
-				next(w, r.WithContext(ctx))
-				return
-			}
+		if s.cfg.JWTSecret == "" {
+			log.Printf("auth: 401 %s %s — JWTSecret is empty in config; cannot validate JWTs", r.Method, r.URL.Path)
+			jsonError(w, `unauthorized`, http.StatusUnauthorized)
+			return
 		}
 
-		jsonError(w, `unauthorized`, http.StatusUnauthorized)
+		user, err := ValidateAccessToken(s.cfg.JWTSecret, provided)
+		if err != nil {
+			log.Printf("auth: 401 %s %s — JWT validation failed (tokenLen=%d): %v", r.Method, r.URL.Path, len(provided), err)
+			jsonError(w, `unauthorized`, http.StatusUnauthorized)
+			return
+		}
+		if user == nil {
+			log.Printf("auth: 401 %s %s — ValidateAccessToken returned nil user with nil error", r.Method, r.URL.Path)
+			jsonError(w, `unauthorized`, http.StatusUnauthorized)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), authUserKey, user)
+		next(w, r.WithContext(ctx))
 	}
+}
+
+// firstWord returns the prefix of s up to (but not including) the first space.
+// Used for diagnostic logging — never logs the full Authorization value.
+func firstWord(s string) string {
+	if i := strings.IndexByte(s, ' '); i >= 0 {
+		return s[:i]
+	}
+	if len(s) > 16 {
+		return s[:16] + "…"
+	}
+	return s
 }
 
 // requirePermission returns middleware that checks if the AuthUser has the given permission.

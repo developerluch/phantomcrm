@@ -291,6 +291,12 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 	// Sales
 	mux.HandleFunc("GET /api/v1/portal/sales", auth(s.handleListSales))
 	mux.HandleFunc("POST /api/v1/portal/sales", auth(s.handleCreateSale))
+	// Static-segment routes MUST be registered before the {saleID} catch-all so
+	// they win the pattern match. Without these explicit literals, GETs to
+	// /portal/sales/pipeline and /portal/sales/analytics fell through to the
+	// PUT/DELETE {saleID} pattern and returned 405.
+	mux.HandleFunc("GET /api/v1/portal/sales/pipeline", auth(s.handleSalesPipeline))
+	mux.HandleFunc("GET /api/v1/portal/sales/analytics", auth(s.handleSalesAnalytics))
 	mux.HandleFunc("GET /api/v1/portal/sales/agent/{discordID}", auth(s.handleGetAgentSales))
 	mux.HandleFunc("GET /api/v1/portal/sales/agent/{discordID}/stats", auth(s.handleGetAgentSaleStats))
 	mux.HandleFunc("PUT /api/v1/portal/sales/{saleID}", auth(s.handleUpdateSale))
@@ -395,6 +401,9 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 	// Google Calendar Integration
 	mux.HandleFunc("GET /api/v1/integrations/google/authorize", auth(s.handleGoogleAuthorize))
 	mux.HandleFunc("GET /api/v1/integrations/google/status", auth(s.handleGoogleStatus))
+	// Multi-account contract shim — see handleGoogleAccounts. Without this,
+	// the frontend's getGoogleCalendarAccounts() 404s.
+	mux.HandleFunc("GET /api/v1/integrations/google/accounts", auth(s.handleGoogleAccounts))
 	mux.HandleFunc("GET /api/v1/integrations/google/events", auth(s.handleGoogleEvents))
 	mux.HandleFunc("POST /api/v1/integrations/google/events", auth(s.handleGoogleCreateEvent))
 	mux.HandleFunc("PUT /api/v1/integrations/google/events/{eventId}", auth(s.handleGoogleUpdateEvent))

@@ -371,6 +371,39 @@ func (s *Server) handleGoogleStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 // ──────────────────────────────────────────────────────────────
+// GET /api/v1/integrations/google/accounts
+// ──────────────────────────────────────────────────────────────
+// The frontend was updated to a multi-account contract (see
+// src/types/portal.ts:GoogleCalendarAccount) but the backend still tracks
+// one google integration per user via user_integrations. Until the multi-
+// account schema lands, expose the single integration (if connected) as a
+// one-element array so the frontend renders the existing account instead
+// of 404ing.
+func (s *Server) handleGoogleAccounts(w http.ResponseWriter, r *http.Request) {
+	user := GetAuthUser(r)
+	if user == nil {
+		jsonError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	integration, err := s.db.GetUserIntegration(r.Context(), user.UserID, "google")
+	if err != nil || integration == nil {
+		jsonOK(w, []map[string]any{})
+		return
+	}
+
+	jsonOK(w, []map[string]any{{
+		"id":          integration.ID,
+		"googleEmail": integration.GoogleEmail,
+		"displayName": nil,
+		"calendarId":  "primary",
+		"color":       "#7dd3fc",
+		"isPrimary":   true,
+		"createdAt":   integration.CreatedAt,
+	}})
+}
+
+// ──────────────────────────────────────────────────────────────
 // DELETE /api/v1/integrations/google
 // ──────────────────────────────────────────────────────────────
 

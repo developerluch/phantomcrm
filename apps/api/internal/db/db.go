@@ -649,6 +649,13 @@ func (d *DB) migrate(ctx context.Context) error {
 		`ALTER TABLE sales ADD COLUMN IF NOT EXISTS face_amount NUMERIC`,
 		`ALTER TABLE sales ADD COLUMN IF NOT EXISTS payment_mode TEXT`,
 		`ALTER TABLE sales ADD COLUMN IF NOT EXISTS transcript TEXT`,
+		// Columns referenced by sales.go salesCols / scanSale but missing
+		// from the original CREATE TABLE. Added 2026-05-12 as part of the
+		// backend-split error triage — without these, GET /portal/sales
+		// returns 500 because the SELECT references non-existent columns.
+		`ALTER TABLE sales ADD COLUMN IF NOT EXISTS product_name TEXT`,
+		`ALTER TABLE sales ADD COLUMN IF NOT EXISTS insured_name TEXT`,
+		`ALTER TABLE sales ADD COLUMN IF NOT EXISTS postcard_sent_at TIMESTAMPTZ`,
 
 		`CREATE TABLE IF NOT EXISTS licenses (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
