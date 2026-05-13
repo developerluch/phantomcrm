@@ -1,13 +1,25 @@
 -- CRM M0 LSP-clean subtype views.
--- Re-created idempotently on every startup via CREATE OR REPLACE.
+-- DROP-then-CREATE on every startup so column additions/renames to the
+-- underlying source tables (recruits / sales / agent_leads) can flow through
+-- the SELECT *-based view definitions without colliding with Postgres'
+-- CREATE OR REPLACE VIEW column-position invariant (error 42P16 — see
+-- 2026-05-13 Railway crash triggered by ALTER TABLE sales ADD COLUMN
+-- product_name/insured_name/postcard_sent_at shifting s.* in
+-- contact_sale_profile).
+--
 -- LSP contract: every read that only needs Contact supertype fields reads
 -- `contacts` directly. Every read that needs subtype-specific fields reads
 -- the matching profile view, never JOINs across source tables.
 --
--- Any future column added to recruits / sales / agent_leads MUST be
--- reflected here in the same commit. Enforce via CODEOWNERS on this file.
+-- Any future column added to recruits / sales / agent_leads automatically
+-- flows through `SELECT *` here since the views are dropped and recreated
+-- every boot. No CODEOWNERS gate required for that case.
 
-CREATE OR REPLACE VIEW contact_recruit_profile AS
+DROP VIEW IF EXISTS contact_recruit_profile;
+DROP VIEW IF EXISTS contact_sale_profile;
+DROP VIEW IF EXISTS contact_agent_lead_profile;
+
+CREATE VIEW contact_recruit_profile AS
 SELECT r.*,
        c.lifecycle_stage AS contact_lifecycle_stage,
        c.status          AS contact_status,
@@ -18,7 +30,7 @@ SELECT r.*,
 FROM recruits r
 LEFT JOIN contacts c ON c.source_type = 'recruit' AND c.source_id = r.id::TEXT;
 
-CREATE OR REPLACE VIEW contact_sale_profile AS
+CREATE VIEW contact_sale_profile AS
 SELECT s.*,
        c.lifecycle_stage AS contact_lifecycle_stage,
        c.status          AS contact_status,
@@ -29,7 +41,7 @@ SELECT s.*,
 FROM sales s
 LEFT JOIN contacts c ON c.source_type = 'sale' AND c.source_id = s.id::TEXT;
 
-CREATE OR REPLACE VIEW contact_agent_lead_profile AS
+CREATE VIEW contact_agent_lead_profile AS
 SELECT al.*,
        c.lifecycle_stage AS contact_lifecycle_stage,
        c.status          AS contact_status,
