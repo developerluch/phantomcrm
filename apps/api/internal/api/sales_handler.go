@@ -121,3 +121,42 @@ func (s *Server) handleDeleteSale(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// handleSalesPipeline returns aggregated counts + total AP per status bucket.
+// Matches the frontend PipelineSummary contract (src/types/portal.ts).
+// Added 2026-05-12 — previously missing, causing 405 since the path matched
+// the PUT/DELETE /portal/sales/{saleID} pattern with saleID="pipeline".
+func (s *Server) handleSalesPipeline(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	agentID := q.Get("agentId")
+	dateFrom := q.Get("dateFrom")
+	dateTo := q.Get("dateTo")
+
+	summary, err := s.db.GetSalesPipelineSummary(r.Context(), agentID, dateFrom, dateTo)
+	if err != nil {
+		log.Printf("API: sales pipeline: %v", err)
+		jsonError(w, "database error", http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, summary)
+}
+
+// handleSalesAnalytics returns by-policy-type / by-month / by-lead-source /
+// top-agents breakdowns. Mirrors frontend SalesAnalytics contract. Stub
+// implementation that returns empty arrays for any data the schema doesn't
+// support yet (lead source / commission top-agents); the by-policy-type and
+// by-month buckets are real.
+func (s *Server) handleSalesAnalytics(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	agentID := q.Get("agentId")
+	dateFrom := q.Get("dateFrom")
+	dateTo := q.Get("dateTo")
+
+	analytics, err := s.db.GetSalesAnalytics(r.Context(), agentID, dateFrom, dateTo)
+	if err != nil {
+		log.Printf("API: sales analytics: %v", err)
+		jsonError(w, "database error", http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, analytics)
+}

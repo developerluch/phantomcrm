@@ -351,3 +351,219 @@ func (d *DB) DeleteSale(ctx context.Context, id string) error {
 	}
 	return nil
 }
+
+// PipelineBucket is one row in the PipelineSummary contract.
+type PipelineBucket struct {
+	Count   int     `json:"count"`
+	TotalAP float64 `json:"totalAP"`
+}
+
+// PipelineSummary aggregates sales by status and computes derived ratios.
+// Matches the frontend src/types/portal.ts:PipelineSummary contract.
+type PipelineSummary struct {
+	Submitted        PipelineBucket `json:"submitted"`
+	Approved         PipelineBucket `json:"approved"`
+	Issued           PipelineBucket `json:"issued"`
+	OnBooks          PipelineBucket `json:"onBooks"`
+	Paid             PipelineBucket `json:"paid"`
+	Cancelled        PipelineBucket `json:"cancelled"`
+	CloseRate        float64        `json:"closeRate"`
+	PersistencyRate  float64        `json:"persistencyRate"`
+}
+
+// GetSalesPipelineSummary returns count + total premium grouped by status,
+// optionally scoped to a specific agent and/or date range.
+func (d *DB) GetSalesPipelineSummary(ctx context.Context, agentID, dateFrom, dateTo string) (*PipelineSummary, error) {
+	where := []string{"1=1"}
+	args := []interface{}{}
+	argN := 1
+	if agentID != "" {
+		where = append(where, fmt.Sprintf("agent_discord_id = $%d", argN))
+		args = append(args, agentID)
+		argN++
+	}
+	if dateFrom != "" {
+		where = append(where, fmt.Sprintf("created_at >= $%d", argN))
+		args = append(args, dateFrom)
+		argN++
+	}
+	if dateTo != "" {
+		where = append(where, fmt.Sprintf("created_at <= $%d", argN))
+		args = append(args, dateTo+"T23:59:59Z")
+		argN++
+	}
+	whereClause := strings.Join(where, " AND ")
+
+	rows, err := d.pool.QueryContext(ctx,
+		"SELECT LOWER(status), COUNT(*), COALESCE(SUM(premium),0) FROM sales WHERE "+whereClause+" GROUP BY LOWER(status)", args...)
+	if err != nil {
+		return nil, fmt.Errorf("db: sales pipeline: %w", err)
+	}
+	defer rows.Close()
+
+	summary := &PipelineSummary{}
+	for rows.Next() {
+		var status string
+		var b PipelineBucket
+		if err := rows.Scan(&status, &b.Count, &b.TotalAP); err != nil {
+			return nil, fmt.Errorf("db: sales pipeline scan: %w", err)
+		}
+		switch status {
+		case "submitted":
+			summary.Submitted = b
+		case "approved":
+			summary.Approved = b
+		case "issued":
+			summary.Issued = b
+		case "active", "placed", "on_books", "on-books":
+			// Treat "active"/"placed" as on-books.
+			summary.OnBooks.Count += b.Count
+			summary.OnBooks.TotalAP += b.TotalAP
+		case "paid":
+			summary.Paid = b
+		case "cancelled", "canceled":
+			summary.Cancelled.Count += b.Count
+			summary.Cancelled.TotalAP += b.TotalAP
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("db: sales pipeline rows: %w", err)
+	}
+
+	// closeRate = issued / submitted (when submitted > 0)
+	if summary.Submitted.Count > 0 {
+		summary.CloseRate = float64(summary.Issued.Count) / float64(summary.Submitted.Count)
+	}
+	// persistencyRate = on-books / issued (when issued > 0)
+	if summary.Issued.Count > 0 {
+		summary.PersistencyRate = float64(summary.OnBooks.Count) / float64(summary.Issued.Count)
+	}
+	return summary, nil
+}
+
+// SalesAnalyticsByPolicyType is one row of the by-policy-type slice.
+type SalesAnalyticsByPolicyType struct {
+	Type    string  `json:"type"`
+	Count   int     `json:"count"`
+	Premium float64 `json:"premium"`
+}
+
+// SalesAnalyticsByMonth is one row of the by-month slice.
+type SalesAnalyticsByMonth struct {
+	Month     string  `json:"month"`
+	Submitted int     `json:"submitted"`
+	Approved  int     `json:"approved"`
+	Issued    int     `json:"issued"`
+	PremiumAP float64 `json:"premiumAP"`
+}
+
+// SalesAnalyticsByLeadSource — stub; sales table has no lead_source column yet.
+type SalesAnalyticsByLeadSource struct {
+	Source     string  `json:"source"`
+	Count      int     `json:"count"`
+	CloseRate  float64 `json:"closeRate"`
+	AvgPremium float64 `json:"avgPremium"`
+}
+
+// SalesAnalyticsTopAgent — top agents by issued AP.
+type SalesAnalyticsTopAgent struct {
+	AgentID    string  `json:"agentId"`
+	AgentName  string  `json:"agentName"`
+	IssuedAP   float64 `json:"issuedAP"`
+	Commission float64 `json:"commission"`
+}
+
+// SalesAnalytics is the response shape for GET /portal/sales/analytics.
+// Matches the frontend src/types/portal.ts:SalesAnalytics contract.
+type SalesAnalytics struct {
+	ByPolicyType []SalesAnalyticsByPolicyType `json:"byPolicyType"`
+	ByMonth      []SalesAnalyticsByMonth      `json:"byMonth"`
+	ByLeadSource []SalesAnalyticsByLeadSource `json:"byLeadSource"`
+	TopAgents    []SalesAnalyticsTopAgent     `json:"topAgents"`
+}
+
+// GetSalesAnalytics returns the aggregated analytics payload. ByLeadSource is
+// returned empty until the sales schema gets a lead_source column.
+func (d *DB) GetSalesAnalytics(ctx context.Context, agentID, dateFrom, dateTo string) (*SalesAnalytics, error) {
+	where := []string{"1=1"}
+	args := []interface{}{}
+	argN := 1
+	if agentID != "" {
+		where = append(where, fmt.Sprintf("s.agent_discord_id = $%d", argN))
+		args = append(args, agentID)
+		argN++
+	}
+	if dateFrom != "" {
+		where = append(where, fmt.Sprintf("s.created_at >= $%d", argN))
+		args = append(args, dateFrom)
+		argN++
+	}
+	if dateTo != "" {
+		where = append(where, fmt.Sprintf("s.created_at <= $%d", argN))
+		args = append(args, dateTo+"T23:59:59Z")
+		argN++
+	}
+	whereClause := strings.Join(where, " AND ")
+
+	result := &SalesAnalytics{
+		ByPolicyType: []SalesAnalyticsByPolicyType{},
+		ByMonth:      []SalesAnalyticsByMonth{},
+		ByLeadSource: []SalesAnalyticsByLeadSource{},
+		TopAgents:    []SalesAnalyticsTopAgent{},
+	}
+
+	// By policy type
+	rows, err := d.pool.QueryContext(ctx,
+		"SELECT policy_type, COUNT(*), COALESCE(SUM(premium),0) FROM sales s WHERE "+whereClause+" GROUP BY policy_type ORDER BY 2 DESC", args...)
+	if err != nil {
+		return nil, fmt.Errorf("db: analytics by policy type: %w", err)
+	}
+	for rows.Next() {
+		var r SalesAnalyticsByPolicyType
+		if err := rows.Scan(&r.Type, &r.Count, &r.Premium); err == nil {
+			result.ByPolicyType = append(result.ByPolicyType, r)
+		}
+	}
+	rows.Close()
+
+	// By month (last 12 months)
+	rows, err = d.pool.QueryContext(ctx,
+		"SELECT TO_CHAR(date_trunc('month', s.created_at), 'YYYY-MM') AS m, "+
+			"COUNT(*) FILTER (WHERE LOWER(s.status) = 'submitted'), "+
+			"COUNT(*) FILTER (WHERE LOWER(s.status) = 'approved'), "+
+			"COUNT(*) FILTER (WHERE LOWER(s.status) = 'issued'), "+
+			"COALESCE(SUM(s.premium),0) "+
+			"FROM sales s WHERE "+whereClause+" GROUP BY 1 ORDER BY 1 DESC LIMIT 12", args...)
+	if err != nil {
+		return nil, fmt.Errorf("db: analytics by month: %w", err)
+	}
+	for rows.Next() {
+		var r SalesAnalyticsByMonth
+		if err := rows.Scan(&r.Month, &r.Submitted, &r.Approved, &r.Issued, &r.PremiumAP); err == nil {
+			result.ByMonth = append(result.ByMonth, r)
+		}
+	}
+	rows.Close()
+
+	// Top agents (by issued AP)
+	rows, err = d.pool.QueryContext(ctx,
+		"SELECT s.agent_discord_id, "+
+			"COALESCE(oa.first_name || ' ' || oa.last_name, s.agent_discord_id) AS agent_name, "+
+			"COALESCE(SUM(s.premium) FILTER (WHERE LOWER(s.status) IN ('issued','paid','active','placed')), 0), "+
+			"COALESCE(SUM(s.commission), 0) "+
+			"FROM sales s LEFT JOIN onboarding_agents oa ON oa.discord_id::TEXT = s.agent_discord_id "+
+			"WHERE "+whereClause+" GROUP BY s.agent_discord_id, oa.first_name, oa.last_name "+
+			"ORDER BY 3 DESC LIMIT 10", args...)
+	if err != nil {
+		return nil, fmt.Errorf("db: analytics top agents: %w", err)
+	}
+	for rows.Next() {
+		var r SalesAnalyticsTopAgent
+		if err := rows.Scan(&r.AgentID, &r.AgentName, &r.IssuedAP, &r.Commission); err == nil {
+			result.TopAgents = append(result.TopAgents, r)
+		}
+	}
+	rows.Close()
+
+	return result, nil
+}
