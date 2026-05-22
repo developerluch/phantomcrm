@@ -124,6 +124,8 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 	// Auth: current user (authenticated)
 	mux.HandleFunc("GET /api/v1/auth/me", auth(s.handleMe))
 	mux.HandleFunc("PATCH /api/v1/auth/me", auth(s.handleUpdateMe))
+	mux.HandleFunc("GET /api/v1/auth/me/verification-status", auth(s.handleVerificationStatus))
+	mux.HandleFunc("POST /api/v1/auth/me/verify-npn", auth(s.handleVerifyNpn))
 
 	// Agent endpoints (read + delete-all)
 	mux.HandleFunc("GET /api/v1/agents", auth(s.handleListAgents))

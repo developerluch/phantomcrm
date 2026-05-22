@@ -1048,6 +1048,11 @@ func (d *DB) migrate(ctx context.Context) error {
 		return err
 	}
 
+	// ── Phase 43: User NPN verification fields ──
+	if err := d.migrateUserNPN(ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
 

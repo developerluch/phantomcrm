@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -590,6 +591,95 @@ func (s *Server) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 		OrgID:       user.OrgID,
 		RoleID:      user.RoleID,
 		Permissions: perms,
+	})
+}
+
+// verificationState is the unified GET/POST response shape for NPN verification.
+type verificationState struct {
+	NPNVerified   bool       `json:"npn_verified"`
+	NPN           *string    `json:"npn"`
+	CanonicalName *string    `json:"canonical_name"`
+	VerifiedAt    *time.Time `json:"verified_at"`
+}
+
+// handleVerificationStatus returns the current user's NPN verification state.
+func (s *Server) handleVerificationStatus(w http.ResponseWriter, r *http.Request) {
+	au := GetAuthUser(r)
+	if au == nil {
+		jsonError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	user, err := s.db.GetUserByID(r.Context(), au.UserID)
+	if err != nil || user == nil {
+		jsonError(w, "user not found", http.StatusNotFound)
+		return
+	}
+	jsonOK(w, verificationState{
+		NPNVerified:   user.NPNVerifiedAt != nil,
+		NPN:           user.NPN,
+		CanonicalName: user.CanonicalName,
+		VerifiedAt:    user.NPNVerifiedAt,
+	})
+}
+
+// handleVerifyNpn persists the NIPR-extracted NPN + canonical name for the current user.
+// The UID is validated but NOT persisted (it's NIPR's session identifier, not durable state).
+func (s *Server) handleVerifyNpn(w http.ResponseWriter, r *http.Request) {
+	au := GetAuthUser(r)
+	if au == nil {
+		jsonError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		NPN           string `json:"npn"`
+		CanonicalName string `json:"canonical_name"`
+		UID           string `json:"uid"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	npn := strings.TrimSpace(req.NPN)
+	canonical := strings.TrimSpace(req.CanonicalName)
+	uid := strings.TrimSpace(req.UID)
+
+	if !regexp.MustCompile(`^\d{5,10}$`).MatchString(npn) {
+		jsonError(w, "invalid npn format", http.StatusBadRequest)
+		return
+	}
+	if canonical == "" {
+		jsonError(w, "canonical_name required", http.StatusBadRequest)
+		return
+	}
+	if !regexp.MustCompile(`^P:I:\d+$`).MatchString(uid) {
+		jsonError(w, "invalid uid format", http.StatusBadRequest)
+		return
+	}
+
+	now := time.Now().UTC()
+	if err := s.db.UpdateUser(r.Context(), au.UserID, db.UserUpdate{
+		NPN:           &npn,
+		CanonicalName: &canonical,
+		NPNVerifiedAt: &now,
+	}); err != nil {
+		log.Printf("verifyNpn: %v", err)
+		jsonError(w, "failed to persist verification", http.StatusInternalServerError)
+		return
+	}
+
+	user, err := s.db.GetUserByID(r.Context(), au.UserID)
+	if err != nil || user == nil {
+		jsonError(w, "user not found after write", http.StatusInternalServerError)
+		return
+	}
+
+	jsonOK(w, verificationState{
+		NPNVerified:   user.NPNVerifiedAt != nil,
+		NPN:           user.NPN,
+		CanonicalName: user.CanonicalName,
+		VerifiedAt:    user.NPNVerifiedAt,
 	})
 }
 

@@ -10,32 +10,38 @@ import (
 
 // User represents a row from the users table.
 type User struct {
-	ID           string     `json:"id"`
-	Email        string     `json:"email"`
-	PasswordHash string     `json:"-"`
-	DiscordID    string     `json:"discordId"`
-	GoogleID     string     `json:"googleId"`
-	DisplayName  string     `json:"displayName"`
-	AvatarURL    string     `json:"avatarUrl"`
-	OrgID        string     `json:"orgId"`
-	RoleID       string     `json:"roleId"`
-	IsActive     bool       `json:"isActive"`
-	LastLoginAt  *time.Time `json:"lastLoginAt"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
+	ID            string     `json:"id"`
+	Email         string     `json:"email"`
+	PasswordHash  string     `json:"-"`
+	DiscordID     string     `json:"discordId"`
+	GoogleID      string     `json:"googleId"`
+	DisplayName   string     `json:"displayName"`
+	AvatarURL     string     `json:"avatarUrl"`
+	NPN           *string    `json:"npn"`
+	CanonicalName *string    `json:"canonicalName"`
+	NPNVerifiedAt *time.Time `json:"npnVerifiedAt"`
+	OrgID         string     `json:"orgId"`
+	RoleID        string     `json:"roleId"`
+	IsActive      bool       `json:"isActive"`
+	LastLoginAt   *time.Time `json:"lastLoginAt"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
 }
 
 // UserUpdate holds optional fields to update on a user.
 type UserUpdate struct {
-	Email        *string
-	PasswordHash *string
-	DiscordID    *string
-	GoogleID     *string
-	DisplayName  *string
-	AvatarURL    *string
-	OrgID        *string
-	RoleID       *string
-	IsActive     *bool
+	Email         *string
+	PasswordHash  *string
+	DiscordID     *string
+	GoogleID      *string
+	DisplayName   *string
+	AvatarURL     *string
+	OrgID         *string
+	RoleID        *string
+	IsActive      *bool
+	NPN           *string
+	CanonicalName *string
+	NPNVerifiedAt *time.Time
 }
 
 // CreateUser inserts a new user row.
@@ -54,17 +60,20 @@ func (d *DB) CreateUser(ctx context.Context, u User) error {
 // GetUserByID returns a user by ID, or nil if not found.
 func (d *DB) GetUserByID(ctx context.Context, id string) (*User, error) {
 	var u User
-	var lastLogin sql.NullTime
+	var lastLogin, npnVerifiedAt sql.NullTime
+	var npn, canonical sql.NullString
 	err := d.pool.QueryRowContext(ctx,
 		`SELECT id::TEXT, COALESCE(email,''), COALESCE(password_hash,''),
 		        COALESCE(discord_id,''), COALESCE(google_id,''),
 		        COALESCE(display_name,''), COALESCE(avatar_url,''),
+		        npn, canonical_name, npn_verified_at,
 		        COALESCE(org_id::TEXT,''), role_id::TEXT,
 		        COALESCE(is_active, true), last_login_at, created_at, updated_at
 		 FROM users WHERE id = $1::UUID`, id).Scan(
 		&u.ID, &u.Email, &u.PasswordHash,
 		&u.DiscordID, &u.GoogleID,
 		&u.DisplayName, &u.AvatarURL,
+		&npn, &canonical, &npnVerifiedAt,
 		&u.OrgID, &u.RoleID,
 		&u.IsActive, &lastLogin, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
@@ -74,23 +83,29 @@ func (d *DB) GetUserByID(ctx context.Context, id string) (*User, error) {
 		return nil, fmt.Errorf("db: get user by id: %w", err)
 	}
 	u.LastLoginAt = nullTime(lastLogin)
+	u.NPN = nullStr(npn)
+	u.CanonicalName = nullStr(canonical)
+	u.NPNVerifiedAt = nullTime(npnVerifiedAt)
 	return &u, nil
 }
 
 // GetUserByEmail returns a user by email, or nil if not found.
 func (d *DB) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var u User
-	var lastLogin sql.NullTime
+	var lastLogin, npnVerifiedAt sql.NullTime
+	var npn, canonical sql.NullString
 	err := d.pool.QueryRowContext(ctx,
 		`SELECT id::TEXT, COALESCE(email,''), COALESCE(password_hash,''),
 		        COALESCE(discord_id,''), COALESCE(google_id,''),
 		        COALESCE(display_name,''), COALESCE(avatar_url,''),
+		        npn, canonical_name, npn_verified_at,
 		        COALESCE(org_id::TEXT,''), role_id::TEXT,
 		        COALESCE(is_active, true), last_login_at, created_at, updated_at
 		 FROM users WHERE email = $1`, email).Scan(
 		&u.ID, &u.Email, &u.PasswordHash,
 		&u.DiscordID, &u.GoogleID,
 		&u.DisplayName, &u.AvatarURL,
+		&npn, &canonical, &npnVerifiedAt,
 		&u.OrgID, &u.RoleID,
 		&u.IsActive, &lastLogin, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
@@ -100,23 +115,29 @@ func (d *DB) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 		return nil, fmt.Errorf("db: get user by email: %w", err)
 	}
 	u.LastLoginAt = nullTime(lastLogin)
+	u.NPN = nullStr(npn)
+	u.CanonicalName = nullStr(canonical)
+	u.NPNVerifiedAt = nullTime(npnVerifiedAt)
 	return &u, nil
 }
 
 // GetUserByDiscordID returns a user by Discord ID, or nil if not found.
 func (d *DB) GetUserByDiscordID(ctx context.Context, discordID string) (*User, error) {
 	var u User
-	var lastLogin sql.NullTime
+	var lastLogin, npnVerifiedAt sql.NullTime
+	var npn, canonical sql.NullString
 	err := d.pool.QueryRowContext(ctx,
 		`SELECT id::TEXT, COALESCE(email,''), COALESCE(password_hash,''),
 		        COALESCE(discord_id,''), COALESCE(google_id,''),
 		        COALESCE(display_name,''), COALESCE(avatar_url,''),
+		        npn, canonical_name, npn_verified_at,
 		        COALESCE(org_id::TEXT,''), role_id::TEXT,
 		        COALESCE(is_active, true), last_login_at, created_at, updated_at
 		 FROM users WHERE discord_id = $1`, discordID).Scan(
 		&u.ID, &u.Email, &u.PasswordHash,
 		&u.DiscordID, &u.GoogleID,
 		&u.DisplayName, &u.AvatarURL,
+		&npn, &canonical, &npnVerifiedAt,
 		&u.OrgID, &u.RoleID,
 		&u.IsActive, &lastLogin, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
@@ -126,23 +147,29 @@ func (d *DB) GetUserByDiscordID(ctx context.Context, discordID string) (*User, e
 		return nil, fmt.Errorf("db: get user by discord id: %w", err)
 	}
 	u.LastLoginAt = nullTime(lastLogin)
+	u.NPN = nullStr(npn)
+	u.CanonicalName = nullStr(canonical)
+	u.NPNVerifiedAt = nullTime(npnVerifiedAt)
 	return &u, nil
 }
 
 // GetUserByGoogleID returns a user by Google ID (sub claim), or nil if not found.
 func (d *DB) GetUserByGoogleID(ctx context.Context, googleID string) (*User, error) {
 	var u User
-	var lastLogin sql.NullTime
+	var lastLogin, npnVerifiedAt sql.NullTime
+	var npn, canonical sql.NullString
 	err := d.pool.QueryRowContext(ctx,
 		`SELECT id::TEXT, COALESCE(email,''), COALESCE(password_hash,''),
 		        COALESCE(discord_id,''), COALESCE(google_id,''),
 		        COALESCE(display_name,''), COALESCE(avatar_url,''),
+		        npn, canonical_name, npn_verified_at,
 		        COALESCE(org_id::TEXT,''), role_id::TEXT,
 		        COALESCE(is_active, true), last_login_at, created_at, updated_at
 		 FROM users WHERE google_id = $1`, googleID).Scan(
 		&u.ID, &u.Email, &u.PasswordHash,
 		&u.DiscordID, &u.GoogleID,
 		&u.DisplayName, &u.AvatarURL,
+		&npn, &canonical, &npnVerifiedAt,
 		&u.OrgID, &u.RoleID,
 		&u.IsActive, &lastLogin, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
@@ -152,6 +179,9 @@ func (d *DB) GetUserByGoogleID(ctx context.Context, googleID string) (*User, err
 		return nil, fmt.Errorf("db: get user by google id: %w", err)
 	}
 	u.LastLoginAt = nullTime(lastLogin)
+	u.NPN = nullStr(npn)
+	u.CanonicalName = nullStr(canonical)
+	u.NPNVerifiedAt = nullTime(npnVerifiedAt)
 	return &u, nil
 }
 
@@ -206,6 +236,21 @@ func (d *DB) UpdateUser(ctx context.Context, id string, updates UserUpdate) erro
 		args = append(args, *updates.IsActive)
 		argN++
 	}
+	if updates.NPN != nil {
+		sets = append(sets, fmt.Sprintf("npn = $%d", argN))
+		args = append(args, *updates.NPN)
+		argN++
+	}
+	if updates.CanonicalName != nil {
+		sets = append(sets, fmt.Sprintf("canonical_name = $%d", argN))
+		args = append(args, *updates.CanonicalName)
+		argN++
+	}
+	if updates.NPNVerifiedAt != nil {
+		sets = append(sets, fmt.Sprintf("npn_verified_at = $%d", argN))
+		args = append(args, *updates.NPNVerifiedAt)
+		argN++
+	}
 
 	if len(args) == 0 {
 		return nil
@@ -227,6 +272,7 @@ func (d *DB) ListUsers(ctx context.Context) ([]User, error) {
 		`SELECT id::TEXT, COALESCE(email,''), COALESCE(password_hash,''),
 		        COALESCE(discord_id,''), COALESCE(google_id,''),
 		        COALESCE(display_name,''), COALESCE(avatar_url,''),
+		        npn, canonical_name, npn_verified_at,
 		        COALESCE(org_id::TEXT,''), role_id::TEXT,
 		        COALESCE(is_active, true), last_login_at, created_at, updated_at
 		 FROM users ORDER BY created_at DESC`)
@@ -238,17 +284,22 @@ func (d *DB) ListUsers(ctx context.Context) ([]User, error) {
 	var result []User
 	for rows.Next() {
 		var u User
-		var lastLogin sql.NullTime
+		var lastLogin, npnVerifiedAt sql.NullTime
+		var npn, canonical sql.NullString
 		if err := rows.Scan(
 			&u.ID, &u.Email, &u.PasswordHash,
 			&u.DiscordID, &u.GoogleID,
 			&u.DisplayName, &u.AvatarURL,
+			&npn, &canonical, &npnVerifiedAt,
 			&u.OrgID, &u.RoleID,
 			&u.IsActive, &lastLogin, &u.CreatedAt, &u.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("db: scan user: %w", err)
 		}
 		u.LastLoginAt = nullTime(lastLogin)
+		u.NPN = nullStr(npn)
+		u.CanonicalName = nullStr(canonical)
+		u.NPNVerifiedAt = nullTime(npnVerifiedAt)
 		result = append(result, u)
 	}
 	return result, rows.Err()
