@@ -110,7 +110,11 @@ type telnyxWebhookEnvelope struct {
 	} `json:"data"`
 }
 
-// handleTelnyxInbound receives inbound SMS from Telnyx. Writes only to the
+// handleTelnyxInbound is the single entry point for every Telnyx Messaging
+// webhook. Telnyx's messaging profile exposes only one webhook_url field,
+// so inbound (message.received) AND status callbacks (message.sent /
+// message.finalized / message.delivery_failed / message.sending_failed)
+// all arrive here. Dispatch happens on data.event_type. Writes to the
 // unified conversations + messages tables (skips the legacy sms_messages
 // table that handleTwilioWebhook writes to; recruit-timeline parity for
 // Telnyx-received SMS is intentionally out of scope for this PR).
@@ -137,6 +141,7 @@ func (s *Server) handleTelnyxInbound(w http.ResponseWriter, r *http.Request) {
 
 	switch env.Data.EventType {
 	case "message.received":
+		// Inbound write path — unchanged.
 		res, err := s.upsertInboundMessage(r.Context(), inboundMessage{
 			Phone:      env.Data.Payload.From.PhoneNumber,
 			Body:       env.Data.Payload.Text,
@@ -150,73 +155,82 @@ func (s *Server) handleTelnyxInbound(w http.ResponseWriter, r *http.Request) {
 		} else {
 			s.broadcastInbound(res, nil)
 		}
+
+	case "message.sent",
+		"message.finalized",
+		"message.delivery_failed",
+		"message.sending_failed",
+		"message.failed":
+		// Status callback. mapTelnyxStatus has full unit-test coverage of
+		// the (event_type, to[0].status, errors[0]) -> (status, errCode,
+		// errMsg) translation; this branch is the thin handler glue.
+		if env.Data.Payload.ID == "" {
+			log.Printf("telnyx webhook: %s event missing payload.id", env.Data.EventType)
+			break
+		}
+		status, errCode, errMsg := mapTelnyxStatus(env)
+		if status == "" {
+			// Defensive: should be unreachable given the case list above,
+			// but log + 200-ack rather than retry forever.
+			log.Printf("telnyx webhook: no status mapping for %s id=%s",
+				env.Data.EventType, env.Data.Payload.ID)
+			break
+		}
+		if err := s.messageRepo.UpdateStatusByProviderMessageID(
+			r.Context(), "telnyx", env.Data.Payload.ID, status, errCode, errMsg,
+		); err != nil {
+			if errors.Is(err, repo.ErrNotFound) {
+				// Status update for a message we don't have a record of —
+				// normal for sends issued outside Phantom (portal test sends,
+				// pre-provisioning messages). Log + 200-ack.
+				log.Printf("telnyx webhook: status update for unknown message_id=%s status=%s",
+					env.Data.Payload.ID, status)
+				break
+			}
+			log.Printf("telnyx webhook: status update failed for id=%s status=%s: %v",
+				env.Data.Payload.ID, status, err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
 	default:
-		// Unknown / non-inbound event types arrive at the inbound URL only
-		// if Telnyx is misconfigured. Log and accept to avoid retries.
-		log.Printf("telnyx webhook: unexpected event type on inbound URL: %q", env.Data.EventType)
+		// Genuinely unknown event type. Log + 200-ack so Telnyx does not
+		// retry on a loop.
+		log.Printf("telnyx webhook: unhandled event type: %q", env.Data.EventType)
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
-// handleTelnyxStatus receives delivery status updates from Telnyx
-// (message.sent / message.finalized / message.failed). Updates the
-// unified messages table keyed by (provider='telnyx', external_message_id).
-func (s *Server) handleTelnyxStatus(w http.ResponseWriter, r *http.Request) {
-	rawBody, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
-	if err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
-	}
-	r.Body = io.NopCloser(bytes.NewReader(rawBody))
-
-	if err := s.verifyTelnyxSignature(r, rawBody); err != nil {
-		log.Printf("telnyx status: signature verification failed: %v", err)
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	var env telnyxWebhookEnvelope
-	if err := json.Unmarshal(rawBody, &env); err != nil {
-		log.Printf("telnyx status: parse body: %v", err)
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
-	}
-
-	status, errCode, errMsg := mapTelnyxStatus(env)
-	if status == "" || env.Data.Payload.ID == "" {
-		// Nothing actionable (unknown event type, missing message id).
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
-	if err := s.messageRepo.UpdateStatusByProviderMessageID(
-		r.Context(), "telnyx", env.Data.Payload.ID, status, errCode, errMsg,
-	); err != nil && !errors.Is(err, repo.ErrNotFound) {
-		log.Printf("telnyx status: update message %s: %v", env.Data.Payload.ID, err)
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
 // mapTelnyxStatus collapses a Telnyx Messaging event into the unified
 // messages.status vocabulary used by the outbound send path. Returns
 // (status, errorCode, errorMessage) — the latter two are nil except on
-// failed events.
+// failed events. Returns "" for events the status dispatcher does not
+// handle (message.received and any unknown type).
 func mapTelnyxStatus(env telnyxWebhookEnvelope) (string, *string, *string) {
 	switch env.Data.EventType {
 	case "message.sent":
 		return "sent", nil, nil
 	case "message.finalized":
-		// Look at to[0].status to disambiguate delivered vs delivery_failed.
-		// Single-recipient SMS is the norm; we treat the first leg as
-		// authoritative.
-		if len(env.Data.Payload.To) > 0 && env.Data.Payload.To[0].Status == "delivered" {
-			return "delivered", nil, nil
+		// Telnyx "finalized" is the lifecycle-complete event. The real
+		// outcome lives on to[0].status. Hybrid vocabulary:
+		//   delivered           -> "delivered"
+		//   delivery_failed     -> "delivery_failed" (preserve the distinct DB state)
+		//   anything else       -> "failed" (delivery_unconfirmed, missing To, etc.)
+		if len(env.Data.Payload.To) > 0 {
+			switch env.Data.Payload.To[0].Status {
+			case "delivered":
+				return "delivered", nil, nil
+			case "delivery_failed":
+				code, msg := firstTelnyxError(env.Data.Payload.Errors)
+				return "delivery_failed", code, msg
+			}
 		}
 		code, msg := firstTelnyxError(env.Data.Payload.Errors)
 		return "failed", code, msg
-	case "message.failed":
+	case "message.delivery_failed", "message.sending_failed", "message.failed":
+		// message.failed is the legacy Telnyx Messaging event name; kept as
+		// a defensive synonym for accounts that may still emit it.
 		code, msg := firstTelnyxError(env.Data.Payload.Errors)
 		return "failed", code, msg
 	default:

@@ -108,9 +108,11 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 	mux.HandleFunc("POST /api/v1/whatsapp/webhook", s.handleWhatsAppWebhook)
 	mux.HandleFunc("POST /api/v1/whatsapp/status-wa", s.handleWhatsAppStatusCallback)
 
-	// Telnyx SMS webhooks (unauthenticated — Ed25519 signature verification is the auth)
+	// Telnyx SMS webhooks (unauthenticated — Ed25519 signature verification
+	// is the auth). The messaging profile exposes only one webhook_url
+	// field, so every event (inbound + status callbacks) arrives at this
+	// one route; dispatch by data.event_type happens inside the handler.
 	mux.HandleFunc("POST /api/v1/sms/telnyx/webhook", s.handleTelnyxInbound)
-	mux.HandleFunc("POST /api/v1/sms/telnyx/status", s.handleTelnyxStatus)
 
 	// Inbound recruit from website (service-to-service auth in handler)
 	mux.HandleFunc("POST /api/v1/recruits/inbound", s.handleInboundRecruit)
