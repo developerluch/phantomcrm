@@ -155,6 +155,34 @@ func (r *MessageRepo) Insert(ctx context.Context, m Message) (Message, error) {
 	return m, nil
 }
 
+// UpdateStatusByProviderMessageID updates a message's delivery status
+// keyed by (provider, external_message_id). Used by provider status
+// webhooks (Telnyx; future Twilio status-callback migration). Returns
+// ErrNotFound if no message matches.
+func (r *MessageRepo) UpdateStatusByProviderMessageID(
+	ctx context.Context, provider, providerMessageID, status string,
+	errCode, errMsg *string,
+) error {
+	if strings.TrimSpace(provider) == "" || strings.TrimSpace(providerMessageID) == "" {
+		return ErrNotFound
+	}
+	res, err := r.pool.ExecContext(ctx, `
+		UPDATE messages
+		   SET status = $3, error_code = $4, error_message = $5
+		 WHERE provider = $1 AND external_message_id = $2`,
+		provider, providerMessageID, status,
+		nullString(errCode), nullString(errMsg),
+	)
+	if err != nil {
+		return fmt.Errorf("messages: update status: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // FindByIdempotencyKey returns the existing message for the given
 // (conversation, key) tuple, or ErrNotFound.
 func (r *MessageRepo) FindByIdempotencyKey(ctx context.Context, conversationID, key string) (Message, error) {

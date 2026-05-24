@@ -29,12 +29,13 @@ var upgrader = gorillaws.Upgrader{
 
 // Server is the standalone REST API server.
 type Server struct {
-	cfg       *config.Config
-	db        *db.DB
-	hub       *websocket.Hub
-	smsClient *sms.Client
-	mux       *http.ServeMux
-	srv       *http.Server
+	cfg          *config.Config
+	db           *db.DB
+	hub          *websocket.Hub
+	smsClient    *sms.Client
+	telnyxClient *sms.TelnyxClient
+	mux          *http.ServeMux
+	srv          *http.Server
 
 	// CRM M1 repos. Constructed once in NewServer and shared across requests.
 	contactRepo   *repo.ContactRepo
@@ -72,14 +73,23 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 		}
 	}
 
-	// Channel registry: register Twilio senders when configured. Stub
-	// senders (Meta WA, Voice) are always registered so the registry can
-	// surface ErrUnsupported with a known provider name.
+	s.telnyxClient = sms.NewTelnyx(cfg.TelnyxAPIKey, cfg.TelnyxFromNumber, cfg.TelnyxMessagingProfileID)
+	if s.telnyxClient != nil {
+		log.Println("Telnyx SMS client initialized")
+	}
+
+	// Channel registry: register Twilio + Telnyx senders when configured.
+	// Stub senders (Meta WA, Voice) are always registered so the registry
+	// can surface ErrUnsupported with a known provider name.
 	s.channelRegistry = channels.NewRegistry()
 	if s.smsClient != nil {
 		s.channelRegistry.Register(channels.NewTwilioSMSSender(s.smsClient))
 		s.channelRegistry.Register(channels.NewTwilioWhatsAppSender(s.smsClient))
 		log.Println("Channel senders registered: twilio sms, twilio whatsapp")
+	}
+	if s.telnyxClient != nil {
+		s.channelRegistry.Register(channels.NewTelnyxSMSSender(s.telnyxClient))
+		log.Println("Channel senders registered: telnyx sms")
 	}
 	s.channelRegistry.Register(channels.NewMetaWhatsAppSender())
 	s.channelRegistry.Register(channels.NewVoiceStubSender("twilio"))
@@ -97,6 +107,10 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 	// WhatsApp Twilio webhooks (unauthenticated — Twilio calls these directly)
 	mux.HandleFunc("POST /api/v1/whatsapp/webhook", s.handleWhatsAppWebhook)
 	mux.HandleFunc("POST /api/v1/whatsapp/status-wa", s.handleWhatsAppStatusCallback)
+
+	// Telnyx SMS webhooks (unauthenticated — Ed25519 signature verification is the auth)
+	mux.HandleFunc("POST /api/v1/sms/telnyx/webhook", s.handleTelnyxInbound)
+	mux.HandleFunc("POST /api/v1/sms/telnyx/status", s.handleTelnyxStatus)
 
 	// Inbound recruit from website (service-to-service auth in handler)
 	mux.HandleFunc("POST /api/v1/recruits/inbound", s.handleInboundRecruit)

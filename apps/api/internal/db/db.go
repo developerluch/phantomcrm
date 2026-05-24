@@ -1053,6 +1053,11 @@ func (d *DB) migrate(ctx context.Context) error {
 		return err
 	}
 
+	// ── Phase 44: SMS provider status-webhook lookup index ──
+	if err := d.migrateTelnyxSMS(ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
 

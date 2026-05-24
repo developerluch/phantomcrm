@@ -120,6 +120,18 @@ type Config struct {
 	// Twilio WhatsApp
 	TwilioWhatsAppNumber string
 
+	// Telnyx SMS
+	TelnyxAPIKey             string
+	TelnyxFromNumber         string
+	TelnyxMessagingProfileID string
+	TelnyxPublicKey          string // base64-encoded Ed25519 public key for webhook signature verification
+
+	// SMS provider selection. Future-proofing hook for outbound-initiated
+	// conversation creation; no current consumer. Unset → existing behavior
+	// (conversation.provider drives routing; new inbound webhooks set
+	// provider from the webhook source).
+	DefaultSMSProvider string
+
 	// Cal.com booking
 	CalComURL    string
 	CalComAPIKey string
@@ -218,6 +230,13 @@ func MustLoad() *Config {
 		TwilioAuthToken:      os.Getenv("TWILIO_AUTH_TOKEN"),
 		TwilioFromNumber:     os.Getenv("TWILIO_FROM_NUMBER"),
 		TwilioWhatsAppNumber: os.Getenv("TWILIO_WHATSAPP_NUMBER"),
+
+		TelnyxAPIKey:             os.Getenv("TELNYX_API_KEY"),
+		TelnyxFromNumber:         os.Getenv("TELNYX_FROM_NUMBER"),
+		TelnyxMessagingProfileID: os.Getenv("TELNYX_MESSAGING_PROFILE_ID"),
+		TelnyxPublicKey:          os.Getenv("TELNYX_PUBLIC_KEY"),
+		DefaultSMSProvider:       os.Getenv("DEFAULT_SMS_PROVIDER"),
+
 		CalComURL:            getEnvDefault("CAL_COM_URL", ""),
 		CalComAPIKey:         os.Getenv("CALCOM_API_KEY"),
 
@@ -292,6 +311,9 @@ func (c *Config) MustValidateAPI() {
 	}
 	if c.TwilioWhatsAppNumber == "" {
 		log.Println("WARNING: TWILIO_WHATSAPP_NUMBER not set — WhatsApp features disabled")
+	}
+	if c.TelnyxAPIKey == "" || c.TelnyxFromNumber == "" {
+		log.Println("WARNING: Telnyx not configured — SMS via telnyx disabled")
 	}
 	if c.WAVVAPIKey == "" {
 		log.Println("WARNING: WAVV_API_KEY not set — WAVV sync disabled")
