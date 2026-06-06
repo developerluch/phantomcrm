@@ -79,6 +79,11 @@ func (d *DB) CreateChatMessage(ctx context.Context, conversationID, role, conten
 	return &cm, nil
 }
 
+func (d *DB) UpdateChatMessageToolCalls(ctx context.Context, messageID string, toolCalls json.RawMessage) error {
+	_, err := d.pool.ExecContext(ctx, `UPDATE chat_messages SET tool_calls_json = $2 WHERE id = $1`, messageID, toolCalls)
+	return err
+}
+
 func (d *DB) ListChatMessages(ctx context.Context, conversationID string) ([]ChatMessage, error) {
 	rows, err := d.pool.QueryContext(ctx, `SELECT id, conversation_id, role, content, tool_calls_json, created_at
 		FROM chat_messages WHERE conversation_id = $1 ORDER BY created_at ASC`, conversationID)

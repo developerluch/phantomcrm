@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"phantomcrm-api/internal/db"
@@ -145,6 +146,13 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 	// Save user message
 	s.db.CreateChatMessage(r.Context(), convID, "user", req.Message, nil)
 
+	aiSettings, err := s.db.GetAISettings(r.Context(), user.UserID)
+	if err != nil {
+		log.Printf("GetAISettings error: %v", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
 	// Build message history from DB (text-only for stored messages)
 	history, _ := s.db.ListChatMessages(r.Context(), convID)
 	messages := make([]any, 0)
@@ -177,7 +185,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 	systemPrompt := `You are VIPA AI, the admin assistant for the VIPA insurance recruitment platform.
 You are talking to Lucky (Luciano Cutaj), founder of Top Floor Closers (TFC).
 
-You have FULL control of the platform. You can:
+You can help Lucky operate the platform. You can:
 - View and manage all agents, recruits, and sales
 - Create, update, and delete records across every feature
 - Send SMS and WhatsApp messages to recruits
@@ -194,8 +202,8 @@ You have FULL control of the platform. You can:
 RULES:
 - Be conversational. No markdown formatting. Keep responses to 2-3 sentences unless Lucky asks for detail.
 - ALWAYS use the appropriate tool to fetch or modify data. Never make up data.
-- For destructive actions (delete, kick), confirm with Lucky before executing unless he explicitly told you to do it.
-- When creating or updating records, confirm what you did with the key details.
+- Mutation tools create a pending action for Lucky to confirm unless server full-trust mode is enabled.
+- When creating or updating records, explain the pending action or confirm what executed with key details.
 - When listing data, summarize counts and highlight the most important items.
 - If a tool returns an error, explain what went wrong in plain language.
 - Remember what was said earlier in this conversation — do not say "I don't have context" if the user references something from earlier messages.
@@ -210,6 +218,7 @@ CONTEXT:
 	// Tool use loop — max 5 iterations to prevent runaway
 	const maxToolIter = 5
 	var responseText string
+	var actionRequests []*db.AIActionRequest
 
 	for iter := 0; iter < maxToolIter; iter++ {
 		claudeResp, err := s.callClaudeAPI(r.Context(), apiKey, systemPrompt, messages, tools)
@@ -266,7 +275,10 @@ CONTEXT:
 		var toolResults []any
 		for _, block := range claudeResp.Content {
 			if block.Type == "tool_use" {
-				result := s.executeToolCall(r, block.Name, block.Input)
+				result, actionRequest := s.processChatToolUse(r, user, convID, aiSettings, block.Name, block.Input)
+				if actionRequest != nil {
+					actionRequests = append(actionRequests, actionRequest)
+				}
 				resultJSON, _ := json.Marshal(result)
 				toolResults = append(toolResults, map[string]any{
 					"type":        "tool_result",
@@ -301,7 +313,26 @@ CONTEXT:
 	log.Printf("chat: final response (convID=%s): %s", convID, responseText[:min(len(responseText), 100)])
 
 	// Save assistant message
-	s.db.CreateChatMessage(r.Context(), convID, "assistant", responseText, nil)
+	toolCallsJSON := chatActionSummariesJSON(actionRequests)
+	assistantMessage, err := s.db.CreateChatMessage(r.Context(), convID, "assistant", responseText, toolCallsJSON)
+	if err != nil {
+		log.Printf("CreateChatMessage assistant error: %v", err)
+	} else if len(actionRequests) > 0 {
+		for _, actionRequest := range actionRequests {
+			if actionRequest == nil {
+				continue
+			}
+			if err := s.db.AttachAIActionMessage(r.Context(), actionRequest.ID, assistantMessage.ID); err != nil {
+				log.Printf("AttachAIActionMessage error: %v", err)
+				continue
+			}
+			actionRequest.MessageID = &assistantMessage.ID
+		}
+		toolCallsJSON = chatActionSummariesJSON(actionRequests)
+		if err := s.db.UpdateChatMessageToolCalls(r.Context(), assistantMessage.ID, toolCallsJSON); err != nil {
+			log.Printf("UpdateChatMessageToolCalls error: %v", err)
+		}
+	}
 
 	// Update conversation title from first message
 	if req.ConversationID == "" && len(req.Message) > 0 {
@@ -317,6 +348,7 @@ CONTEXT:
 		"conversationId": convID,
 		"message":        responseText,
 		"role":           "assistant",
+		"actions":        chatActionSummaries(actionRequests),
 	})
 }
 
@@ -424,8 +456,8 @@ func buildToolDefinitions() []map[string]any {
 	return []map[string]any{
 		// ── Dashboard & Analytics ─────────────────────────────────────────
 		{
-			"name":        "get_dashboard_summary",
-			"description": "Get dashboard summary with total agents, conversion rates, and key metrics",
+			"name":         "get_dashboard_summary",
+			"description":  "Get dashboard summary with total agents, conversion rates, and key metrics",
 			"input_schema": map[string]any{"type": "object", "properties": map[string]any{}},
 		},
 		{
@@ -463,8 +495,8 @@ func buildToolDefinitions() []map[string]any {
 			},
 		},
 		{
-			"name":        "get_at_risk_agents",
-			"description": "Get agents who are at risk of becoming inactive (no activity for 14+ days in stages 1-4)",
+			"name":         "get_at_risk_agents",
+			"description":  "Get agents who are at risk of becoming inactive (no activity for 14+ days in stages 1-4)",
 			"input_schema": map[string]any{"type": "object", "properties": map[string]any{}},
 		},
 		{
@@ -581,7 +613,7 @@ func buildToolDefinitions() []map[string]any {
 			"input_schema": map[string]any{
 				"type": "object",
 				"properties": map[string]any{
-					"agentId":    map[string]any{"type": "string", "description": "Filter by agent Discord ID"},
+					"agentId":    map[string]any{"type": "string", "description": "Filter by account Agent ID"},
 					"status":     map[string]any{"type": "string", "description": "Filter: submitted, approved, issued, paid, cancelled"},
 					"policyType": map[string]any{"type": "string", "description": "Filter: life, health, auto, home, medicare, final_expense, annuity"},
 					"page":       map[string]any{"type": "integer", "description": "Page number, defaults to 1"},
@@ -604,7 +636,7 @@ func buildToolDefinitions() []map[string]any {
 			"input_schema": map[string]any{
 				"type": "object",
 				"properties": map[string]any{
-					"agentId":      map[string]any{"type": "string", "description": "Agent Discord ID"},
+					"agentId":      map[string]any{"type": "string", "description": "Optional account Agent ID. Defaults to the authenticated user's Agent ID."},
 					"clientName":   map[string]any{"type": "string"},
 					"policyType":   map[string]any{"type": "string", "description": "life, health, auto, home, medicare, final_expense, annuity"},
 					"carrier":      map[string]any{"type": "string", "description": "Insurance carrier name"},
@@ -614,7 +646,7 @@ func buildToolDefinitions() []map[string]any {
 					"policyNumber": map[string]any{"type": "string"},
 					"notes":        map[string]any{"type": "string"},
 				},
-				"required": []string{"agentId", "clientName", "policyType", "carrier", "premium"},
+				"required": []string{"clientName", "policyType", "carrier", "premium"},
 			},
 		},
 		{
@@ -783,8 +815,8 @@ func buildToolDefinitions() []map[string]any {
 
 		// ── Org Chart & Team ─────────────────────────────────────────────
 		{
-			"name":        "get_org_chart",
-			"description": "Get the organization chart — full hierarchy.",
+			"name":         "get_org_chart",
+			"description":  "Get the organization chart — full hierarchy.",
 			"input_schema": map[string]any{"type": "object", "properties": map[string]any{}},
 		},
 		{
@@ -802,8 +834,8 @@ func buildToolDefinitions() []map[string]any {
 			},
 		},
 		{
-			"name":        "get_comp_tiers",
-			"description": "List all compensation tiers with their names and percentages.",
+			"name":         "get_comp_tiers",
+			"description":  "List all compensation tiers with their names and percentages.",
 			"input_schema": map[string]any{"type": "object", "properties": map[string]any{}},
 		},
 
@@ -944,8 +976,8 @@ func buildToolDefinitions() []map[string]any {
 
 		// ── Pending Joins & Purge ────────────────────────────────────────
 		{
-			"name":        "get_pending_joins",
-			"description": "Get pending join requests — people waiting to be approved into the organization.",
+			"name":         "get_pending_joins",
+			"description":  "Get pending join requests — people waiting to be approved into the organization.",
 			"input_schema": map[string]any{"type": "object", "properties": map[string]any{}},
 		},
 		{
@@ -961,8 +993,8 @@ func buildToolDefinitions() []map[string]any {
 			},
 		},
 		{
-			"name":        "get_purge_status",
-			"description": "Get purge system status — inactive agents being warned and purge settings.",
+			"name":         "get_purge_status",
+			"description":  "Get purge system status — inactive agents being warned and purge settings.",
 			"input_schema": map[string]any{"type": "object", "properties": map[string]any{}},
 		},
 	}
@@ -1356,8 +1388,27 @@ func (s *Server) executeToolCall(r *http.Request, toolName string, input json.Ra
 		if status == "" {
 			status = "submitted"
 		}
+		agentID := strings.TrimSpace(params.AgentID)
+		if agentID == "" && user != nil {
+			agentID = strings.TrimSpace(user.AgentID)
+			if agentID == "" && user.UserID != "" && user.UserID != "system" {
+				if dbUser, err := s.db.GetUserByID(ctx, user.UserID); err == nil && dbUser != nil {
+					agentID = strings.TrimSpace(dbUser.AgentID)
+				}
+			}
+		}
+		if agentID == "" {
+			return map[string]string{"error": "agentId is required and the current account does not have a provisioned Agent ID"}
+		}
+		exists, err := s.db.AgentIDExists(ctx, agentID)
+		if err != nil {
+			return map[string]string{"error": err.Error()}
+		}
+		if !exists {
+			return map[string]string{"error": "unknown agentId"}
+		}
 		sale := &db.Sale{
-			AgentID:    params.AgentID,
+			AgentID:    agentID,
 			ClientName: params.ClientName,
 			PolicyType: params.PolicyType,
 			Carrier:    params.Carrier,
@@ -1377,7 +1428,7 @@ func (s *Server) executeToolCall(r *http.Request, toolName string, input json.Ra
 		if err != nil {
 			return map[string]string{"error": err.Error()}
 		}
-		return map[string]any{"success": true, "saleId": id, "agentId": params.AgentID, "clientName": params.ClientName, "premium": params.Premium, "status": status}
+		return map[string]any{"success": true, "saleId": id, "agentId": agentID, "clientName": params.ClientName, "premium": params.Premium, "status": status}
 
 	case "update_sale":
 		var params struct {

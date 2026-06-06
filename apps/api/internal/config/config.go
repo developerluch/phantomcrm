@@ -10,16 +10,16 @@ import (
 )
 
 type Config struct {
-	DiscordToken          string
-	GuildID               string
-	DatabaseURL           string
-	CapSolverAPIKey       string
-	LicenseCheckChannelID      string
+	DiscordToken              string
+	GuildID                   string
+	DatabaseURL               string
+	CapSolverAPIKey           string
+	LicenseCheckChannelID     string
 	LicenseVerifyLogChannelID string
 	HiringLogChannelID        string
-	StudentRoleID         string
-	LicensedAgentRoleID   string
-	LogLevel              string
+	StudentRoleID             string
+	LicensedAgentRoleID       string
+	LogLevel                  string
 
 	// Resend Email
 	ResendAPIKey  string
@@ -41,16 +41,16 @@ type Config struct {
 	ActiveAgentRoleID string
 
 	// Agency roles
-	TFCRoleID          string
-	RadiantRoleID      string
-	GBURoleID          string
-	TruLightRoleID     string
-	ThriveRoleID       string
-	ThePointRoleID     string
-	SynergyRoleID      string
-	IlluminateRoleID   string
-	EliteOneRoleID     string
-	UnassignedRoleID   string
+	TFCRoleID        string
+	RadiantRoleID    string
+	GBURoleID        string
+	TruLightRoleID   string
+	ThriveRoleID     string
+	ThePointRoleID   string
+	SynergyRoleID    string
+	IlluminateRoleID string
+	EliteOneRoleID   string
+	UnassignedRoleID string
 
 	// Staff roles (comma-separated)
 	StaffRoleIDs string
@@ -60,12 +60,12 @@ type Config struct {
 	WAVVAPIKey           string // Future: for WAVV API integration when available
 
 	// Scheduler config
-	InactivityKickWeeks  int    // Weeks before inactive students are kicked. SAFE DEFAULT 0 = disabled.
-	UnlicensedKickDays   int    // Days before unlicensed agents are kicked. SAFE DEFAULT 0 = disabled.
-	UnlicensedWarnDays   string // Comma-separated warning days (e.g., "15,30,45,59")
-	CheckinDay           int    // 0=Sunday, 1=Monday, ..., 6=Saturday
-	CheckinHour          int    // Hour in ET (0-23)
-	PurgeEnabled         bool   // Gates the 30-day automated inactivity-purge scheduler (default: false)
+	InactivityKickWeeks int    // Weeks before inactive students are kicked. SAFE DEFAULT 0 = disabled.
+	UnlicensedKickDays  int    // Days before unlicensed agents are kicked. SAFE DEFAULT 0 = disabled.
+	UnlicensedWarnDays  string // Comma-separated warning days (e.g., "15,30,45,59")
+	CheckinDay          int    // 0=Sunday, 1=Monday, ..., 6=Saturday
+	CheckinHour         int    // Hour in ET (0-23)
+	PurgeEnabled        bool   // Gates the 30-day automated inactivity-purge scheduler (default: false)
 
 	// Tracker
 	TrackerChannelID string
@@ -79,38 +79,39 @@ type Config struct {
 	WAVVTicketChannelID string
 
 	// Agency owner Discord IDs (for approval flow)
-	AgencyOwnerTFC       string
-	AgencyOwnerRadiant   string
-	AgencyOwnerGBU       string
-	AgencyOwnerTruLight  string
-	AgencyOwnerThrive    string
-	AgencyOwnerThePoint  string
-	AgencyOwnerSynergy   string
+	AgencyOwnerTFC        string
+	AgencyOwnerRadiant    string
+	AgencyOwnerGBU        string
+	AgencyOwnerTruLight   string
+	AgencyOwnerThrive     string
+	AgencyOwnerThePoint   string
+	AgencyOwnerSynergy    string
 	AgencyOwnerIlluminate string
-	AgencyOwnerEliteOne  string
-	PendingRoleID        string
-	ApprovalMode         string // "auto" (default) or "manual"
+	AgencyOwnerEliteOne   string
+	PendingRoleID         string
+	ApprovalMode          string // "auto" (default) or "manual"
 
 	// GoHighLevel CRM
-	GHLAPIKey       string
-	GHLLocationID   string
-	GHLPipelineID   string
-	GHLStageWelcome string
-	GHLStageForm    string
-	GHLStageSorted  string
-	GHLStageStudent string
+	GHLAPIKey           string
+	GHLLocationID       string
+	GHLPipelineID       string
+	GHLStageWelcome     string
+	GHLStageForm        string
+	GHLStageSorted      string
+	GHLStageStudent     string
 	GHLStageVerified    string
 	GHLStageContracting string
 	GHLStageSetup       string
 	GHLStageActive      string
-	GHLCFDiscordID  string
-	GHLCFAgency     string
-	GHLCFState      string
+	GHLCFDiscordID      string
+	GHLCFAgency         string
+	GHLCFState          string
 
 	// API Server
-	APIToken      string
-	APIPort       string
-	AllowedOrigin string
+	APIToken       string
+	APIPort        string
+	AllowedOrigin  string
+	AllowedOrigins []string
 
 	// Twilio SMS
 	TwilioAccountSID string
@@ -148,16 +149,16 @@ func MustLoad() *Config {
 	_ = godotenv.Load() // .env is optional (Railway injects env directly)
 
 	cfg := &Config{
-		DiscordToken:          os.Getenv("DISCORD_TOKEN"),
-		GuildID:               os.Getenv("GUILD_ID"),
-		DatabaseURL:           os.Getenv("DATABASE_URL"),
-		CapSolverAPIKey:       os.Getenv("CAPSOLVER_API_KEY"),
-		LicenseCheckChannelID:      os.Getenv("LICENSE_CHECK_CHANNEL_ID"),
+		DiscordToken:              os.Getenv("DISCORD_TOKEN"),
+		GuildID:                   os.Getenv("GUILD_ID"),
+		DatabaseURL:               os.Getenv("DATABASE_URL"),
+		CapSolverAPIKey:           os.Getenv("CAPSOLVER_API_KEY"),
+		LicenseCheckChannelID:     os.Getenv("LICENSE_CHECK_CHANNEL_ID"),
 		LicenseVerifyLogChannelID: os.Getenv("LICENSE_VERIFY_LOG_CHANNEL_ID"),
 		HiringLogChannelID:        os.Getenv("HIRING_LOG_CHANNEL_ID"),
-		StudentRoleID:         os.Getenv("STUDENT_ROLE_ID"),
-		LicensedAgentRoleID:   os.Getenv("LICENSED_AGENT_ROLE_ID"),
-		LogLevel:              os.Getenv("LOG_LEVEL"),
+		StudentRoleID:             os.Getenv("STUDENT_ROLE_ID"),
+		LicensedAgentRoleID:       os.Getenv("LICENSED_AGENT_ROLE_ID"),
+		LogLevel:                  os.Getenv("LOG_LEVEL"),
 
 		ResendAPIKey:  os.Getenv("RESEND_API_KEY"),
 		EmailFrom:     os.Getenv("EMAIL_FROM"),
@@ -195,17 +196,17 @@ func MustLoad() *Config {
 		TicketChannelID:     os.Getenv("TICKET_CHANNEL_ID"),
 		WAVVTicketChannelID: os.Getenv("WAVV_TICKET_CHANNEL_ID"),
 
-		AgencyOwnerTFC:       os.Getenv("AGENCY_OWNER_TFC"),
-		AgencyOwnerRadiant:   os.Getenv("AGENCY_OWNER_RADIANT"),
-		AgencyOwnerGBU:       os.Getenv("AGENCY_OWNER_GBU"),
-		AgencyOwnerTruLight:  os.Getenv("AGENCY_OWNER_TRULIGHT"),
-		AgencyOwnerThrive:    os.Getenv("AGENCY_OWNER_THRIVE"),
-		AgencyOwnerThePoint:  os.Getenv("AGENCY_OWNER_THE_POINT"),
-		AgencyOwnerSynergy:   os.Getenv("AGENCY_OWNER_SYNERGY"),
+		AgencyOwnerTFC:        os.Getenv("AGENCY_OWNER_TFC"),
+		AgencyOwnerRadiant:    os.Getenv("AGENCY_OWNER_RADIANT"),
+		AgencyOwnerGBU:        os.Getenv("AGENCY_OWNER_GBU"),
+		AgencyOwnerTruLight:   os.Getenv("AGENCY_OWNER_TRULIGHT"),
+		AgencyOwnerThrive:     os.Getenv("AGENCY_OWNER_THRIVE"),
+		AgencyOwnerThePoint:   os.Getenv("AGENCY_OWNER_THE_POINT"),
+		AgencyOwnerSynergy:    os.Getenv("AGENCY_OWNER_SYNERGY"),
 		AgencyOwnerIlluminate: os.Getenv("AGENCY_OWNER_ILLUMINATE"),
-		AgencyOwnerEliteOne:  os.Getenv("AGENCY_OWNER_ELITE_ONE"),
-		PendingRoleID:        os.Getenv("PENDING_ROLE_ID"),
-		ApprovalMode:         getEnvDefault("APPROVAL_MODE", "auto"),
+		AgencyOwnerEliteOne:   os.Getenv("AGENCY_OWNER_ELITE_ONE"),
+		PendingRoleID:         os.Getenv("PENDING_ROLE_ID"),
+		ApprovalMode:          getEnvDefault("APPROVAL_MODE", "auto"),
 
 		GHLAPIKey:           os.Getenv("GHL_API_KEY"),
 		GHLLocationID:       os.Getenv("GHL_LOCATION_ID"),
@@ -222,9 +223,10 @@ func MustLoad() *Config {
 		GHLCFAgency:         os.Getenv("GHL_CF_AGENCY"),
 		GHLCFState:          os.Getenv("GHL_CF_STATE"),
 
-		APIToken:      os.Getenv("API_TOKEN"),
-		APIPort:       os.Getenv("API_PORT"),
-		AllowedOrigin: os.Getenv("ALLOWED_ORIGIN"),
+		APIToken:       os.Getenv("API_TOKEN"),
+		APIPort:        os.Getenv("API_PORT"),
+		AllowedOrigin:  os.Getenv("ALLOWED_ORIGIN"),
+		AllowedOrigins: parseAllowedOrigins(os.Getenv("ALLOWED_ORIGINS"), os.Getenv("ALLOWED_ORIGIN")),
 
 		TwilioAccountSID:     os.Getenv("TWILIO_ACCOUNT_SID"),
 		TwilioAuthToken:      os.Getenv("TWILIO_AUTH_TOKEN"),
@@ -237,8 +239,8 @@ func MustLoad() *Config {
 		TelnyxPublicKey:          os.Getenv("TELNYX_PUBLIC_KEY"),
 		DefaultSMSProvider:       os.Getenv("DEFAULT_SMS_PROVIDER"),
 
-		CalComURL:            getEnvDefault("CAL_COM_URL", ""),
-		CalComAPIKey:         os.Getenv("CALCOM_API_KEY"),
+		CalComURL:    getEnvDefault("CAL_COM_URL", ""),
+		CalComAPIKey: os.Getenv("CALCOM_API_KEY"),
 
 		JWTSecret:           os.Getenv("JWT_SECRET"),
 		DiscordClientID:     os.Getenv("DISCORD_CLIENT_ID"),
@@ -449,6 +451,28 @@ func getEnvDefault(key, defaultVal string) string {
 		return defaultVal
 	}
 	return v
+}
+
+func parseAllowedOrigins(csvOrigins, legacyOrigin string) []string {
+	seen := map[string]bool{}
+	var origins []string
+	add := func(value string) {
+		for _, part := range strings.Split(value, ",") {
+			origin := strings.TrimSpace(part)
+			if origin == "" || seen[origin] {
+				continue
+			}
+			seen[origin] = true
+			origins = append(origins, origin)
+		}
+	}
+
+	add(csvOrigins)
+	add(legacyOrigin)
+	if len(origins) == 0 {
+		add("http://localhost:5173,http://127.0.0.1:5173")
+	}
+	return origins
 }
 
 func getEnvInt(key string, defaultVal int) int {

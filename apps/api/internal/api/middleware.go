@@ -118,11 +118,15 @@ func requirePermission(perm string) func(http.HandlerFunc) http.HandlerFunc {
 // corsMiddleware adds CORS headers.
 func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		origin := s.cfg.AllowedOrigin
-		if origin == "" {
-			origin = "*"
+		origin, allowed := s.requestOriginAllowed(r)
+		w.Header().Add("Vary", "Origin")
+		if !allowed {
+			jsonError(w, "origin not allowed", http.StatusForbidden)
+			return
 		}
-		w.Header().Set("Access-Control-Allow-Origin", origin)
+		if origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
 

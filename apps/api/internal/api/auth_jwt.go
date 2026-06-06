@@ -16,6 +16,7 @@ import (
 // AuthUser holds the identity extracted from a JWT or synthesized from an API key.
 type AuthUser struct {
 	UserID      string   `json:"userId"`
+	AgentID     string   `json:"agentId"`
 	Email       string   `json:"email"`
 	DiscordID   string   `json:"discordId"`
 	OrgID       string   `json:"orgId"`

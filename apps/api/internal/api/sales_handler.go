@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"phantomcrm-api/internal/db"
 )
@@ -62,8 +63,20 @@ func (s *Server) handleCreateSale(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
-	if req.AgentID == "" || req.ClientName == "" || req.PolicyType == "" || req.Carrier == "" {
-		jsonError(w, "agentId, clientName, policyType, and carrier are required", http.StatusBadRequest)
+	agentID, ok := s.resolveSaleAgentID(w, r, req.AgentID)
+	if !ok {
+		return
+	}
+	req.AgentID = agentID
+	req.ClientName = strings.TrimSpace(req.ClientName)
+	req.PolicyType = strings.TrimSpace(req.PolicyType)
+	req.Carrier = strings.TrimSpace(req.Carrier)
+	if req.ClientName == "" || req.PolicyType == "" || req.Carrier == "" {
+		jsonError(w, "clientName, policyType, and carrier are required", http.StatusBadRequest)
+		return
+	}
+	if req.Premium <= 0 {
+		jsonError(w, "premium must be greater than 0", http.StatusBadRequest)
 		return
 	}
 	if req.Status == "" {
@@ -83,6 +96,43 @@ func (s *Server) handleCreateSale(w http.ResponseWriter, r *http.Request) {
 	} else {
 		jsonOK(w, map[string]string{"id": id})
 	}
+}
+
+func (s *Server) resolveSaleAgentID(w http.ResponseWriter, r *http.Request, provided string) (string, bool) {
+	agentID := strings.TrimSpace(provided)
+	if agentID == "" {
+		au := GetAuthUser(r)
+		if au != nil {
+			agentID = strings.TrimSpace(au.AgentID)
+			if agentID == "" && au.UserID != "" && au.UserID != "system" {
+				user, err := s.db.GetUserByID(r.Context(), au.UserID)
+				if err != nil {
+					log.Printf("API: resolve sale agent id: %v", err)
+					jsonError(w, "database error", http.StatusInternalServerError)
+					return "", false
+				}
+				if user != nil {
+					agentID = strings.TrimSpace(user.AgentID)
+				}
+			}
+		}
+	}
+	if agentID == "" {
+		jsonError(w, "agentId is required and the current account does not have a provisioned Agent ID", http.StatusBadRequest)
+		return "", false
+	}
+
+	exists, err := s.db.AgentIDExists(r.Context(), agentID)
+	if err != nil {
+		log.Printf("API: validate sale agent id: %v", err)
+		jsonError(w, "database error", http.StatusInternalServerError)
+		return "", false
+	}
+	if !exists {
+		jsonError(w, "unknown agentId", http.StatusBadRequest)
+		return "", false
+	}
+	return agentID, true
 }
 
 func (s *Server) handleUpdateSale(w http.ResponseWriter, r *http.Request) {

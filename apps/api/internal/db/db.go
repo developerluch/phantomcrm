@@ -801,6 +801,31 @@ func (d *DB) migrate(ctx context.Context) error {
 			tool_calls_json JSONB,
 			created_at TIMESTAMPTZ DEFAULT NOW()
 		)`,
+		`CREATE TABLE IF NOT EXISTS ai_settings (
+			user_id TEXT PRIMARY KEY,
+			full_trust_mode BOOLEAN NOT NULL DEFAULT FALSE,
+			categories JSONB NOT NULL DEFAULT '{}'::JSONB,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		)`,
+		`CREATE TABLE IF NOT EXISTS ai_action_requests (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id TEXT NOT NULL,
+			conversation_id UUID NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+			message_id UUID REFERENCES chat_messages(id) ON DELETE SET NULL,
+			action_type TEXT NOT NULL,
+			category TEXT NOT NULL,
+			input_json JSONB NOT NULL DEFAULT '{}'::JSONB,
+			status TEXT NOT NULL DEFAULT 'pending',
+			result_json JSONB,
+			error TEXT,
+			requires_confirmation BOOLEAN NOT NULL DEFAULT TRUE,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			confirmed_at TIMESTAMPTZ,
+			executed_at TIMESTAMPTZ
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_ai_action_requests_conversation ON ai_action_requests(conversation_id, created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_ai_action_requests_user_status ON ai_action_requests(user_id, status, created_at)`,
 
 		// Phase 25: Lock-In Planner
 		`CREATE TABLE IF NOT EXISTS lock_ins (
@@ -1053,6 +1078,11 @@ func (d *DB) migrate(ctx context.Context) error {
 		return err
 	}
 
+	// ── Phase 45: Account-level business Agent IDs ──
+	if err := d.migrateUserAgentIDs(ctx); err != nil {
+		return err
+	}
+
 	// ── Phase 44: SMS provider status-webhook lookup index ──
 	if err := d.migrateTelnyxSMS(ctx); err != nil {
 		return err
@@ -1104,34 +1134,34 @@ type AgentUpdate struct {
 	CurrentStage    *int
 
 	// Onboarding fields
-	Agency               *string
-	UplineManager        *string
-	ExperienceLevel      *string
-	LicenseStatus        *string
-	ProductionWritten    *string
-	LeadSource           *string
-	VisionGoals          *string
-	CompPct              *string
-	ShowComp             *bool
-	RoleBackground       *string
-	FunHobbies           *string
-	NotificationPref     *string
-	CourseEnrolled       *bool
-	ContractingBooked    *bool
-	ContractingCompleted *bool
-	SetupCompleted       *bool
-	FormCompletedAt      *time.Time
-	SortedAt             *time.Time
-	ActivatedAt          *time.Time
-	KickedAt                 *time.Time
-	KickedReason             *string
-	LastActive               *time.Time
-	UplineManagerDiscordID   *int64
-	LastNudgeSentAt          *time.Time
-	DirectManagerDiscordID   *int64
-	DirectManagerName        *string
-	ApprovalStatus           *string
-	GHLContactID             *string
+	Agency                 *string
+	UplineManager          *string
+	ExperienceLevel        *string
+	LicenseStatus          *string
+	ProductionWritten      *string
+	LeadSource             *string
+	VisionGoals            *string
+	CompPct                *string
+	ShowComp               *bool
+	RoleBackground         *string
+	FunHobbies             *string
+	NotificationPref       *string
+	CourseEnrolled         *bool
+	ContractingBooked      *bool
+	ContractingCompleted   *bool
+	SetupCompleted         *bool
+	FormCompletedAt        *time.Time
+	SortedAt               *time.Time
+	ActivatedAt            *time.Time
+	KickedAt               *time.Time
+	KickedReason           *string
+	LastActive             *time.Time
+	UplineManagerDiscordID *int64
+	LastNudgeSentAt        *time.Time
+	DirectManagerDiscordID *int64
+	DirectManagerName      *string
+	ApprovalStatus         *string
+	GHLContactID           *string
 }
 
 func (d *DB) UpsertAgent(ctx context.Context, discordID, guildID int64, updates AgentUpdate) error {
@@ -1349,7 +1379,6 @@ func (d *DB) UpsertAgent(ctx context.Context, discordID, guildID int64, updates 
 	return err
 }
 
-
 // Agent represents a row from onboarding_agents
 type Agent struct {
 	DiscordID       int64
@@ -1365,37 +1394,37 @@ type Agent struct {
 	CurrentStage    int
 
 	// Onboarding fields
-	Agency               string
-	UplineManager        string
-	ExperienceLevel      string
-	LicenseStatus        string
-	ProductionWritten    string
-	LeadSource           string
-	VisionGoals          string
-	CompPct              string
-	ShowComp             bool
-	RoleBackground       string
-	FunHobbies           string
-	NotificationPref     string
-	CourseEnrolled       bool
-	ContractingBooked    bool
-	ContractingCompleted bool
-	SetupCompleted       bool
-	FormCompletedAt      *time.Time
-	SortedAt             *time.Time
-	ActivatedAt          *time.Time
-	KickedAt             *time.Time
-	KickedReason             string
-	LastActive               *time.Time
-	UplineManagerDiscordID   int64
-	LastNudgeSentAt          *time.Time
-	DirectManagerDiscordID   int64
-	DirectManagerName        string
-	ApprovalStatus           string
-	GHLContactID             string
-	LastUnlicensedWarnDay    *int
-	CreatedAt                time.Time
-	UpdatedAt                time.Time
+	Agency                 string
+	UplineManager          string
+	ExperienceLevel        string
+	LicenseStatus          string
+	ProductionWritten      string
+	LeadSource             string
+	VisionGoals            string
+	CompPct                string
+	ShowComp               bool
+	RoleBackground         string
+	FunHobbies             string
+	NotificationPref       string
+	CourseEnrolled         bool
+	ContractingBooked      bool
+	ContractingCompleted   bool
+	SetupCompleted         bool
+	FormCompletedAt        *time.Time
+	SortedAt               *time.Time
+	ActivatedAt            *time.Time
+	KickedAt               *time.Time
+	KickedReason           string
+	LastActive             *time.Time
+	UplineManagerDiscordID int64
+	LastNudgeSentAt        *time.Time
+	DirectManagerDiscordID int64
+	DirectManagerName      string
+	ApprovalStatus         string
+	GHLContactID           string
+	LastUnlicensedWarnDay  *int
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
 }
 
 // AgentRow is an alias for Agent used by the scheduler for unlicensed kick checks.

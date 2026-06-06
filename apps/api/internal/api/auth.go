@@ -57,6 +57,7 @@ type authResponse struct {
 
 type authUser struct {
 	ID          string   `json:"id"`
+	AgentID     string   `json:"agentId"`
 	Email       string   `json:"email"`
 	DiscordID   string   `json:"discordId"`
 	DisplayName string   `json:"displayName"`
@@ -520,6 +521,15 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "user not found", http.StatusNotFound)
 		return
 	}
+	if user.AgentID == "" {
+		agentID, err := s.db.EnsureUserAgentID(r.Context(), user.ID)
+		if err != nil {
+			log.Printf("auth: ensure agent id: %v", err)
+			jsonError(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		user.AgentID = agentID
+	}
 
 	role, _ := s.db.GetRoleByID(r.Context(), user.RoleID)
 	var perms []string
@@ -529,6 +539,7 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 
 	jsonOK(w, authUser{
 		ID:          user.ID,
+		AgentID:     user.AgentID,
 		Email:       user.Email,
 		DiscordID:   user.DiscordID,
 		DisplayName: user.DisplayName,
@@ -575,6 +586,15 @@ func (s *Server) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "user not found", http.StatusNotFound)
 		return
 	}
+	if user.AgentID == "" {
+		agentID, err := s.db.EnsureUserAgentID(r.Context(), user.ID)
+		if err != nil {
+			log.Printf("auth: ensure agent id: %v", err)
+			jsonError(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		user.AgentID = agentID
+	}
 
 	role, _ := s.db.GetRoleByID(r.Context(), user.RoleID)
 	var perms []string
@@ -584,6 +604,7 @@ func (s *Server) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 
 	jsonOK(w, authUser{
 		ID:          user.ID,
+		AgentID:     user.AgentID,
 		Email:       user.Email,
 		DiscordID:   user.DiscordID,
 		DisplayName: user.DisplayName,
@@ -687,6 +708,15 @@ func (s *Server) handleVerifyNpn(w http.ResponseWriter, r *http.Request) {
 
 // issueTokens generates and responds with access + refresh tokens.
 func (s *Server) issueTokens(w http.ResponseWriter, r *http.Request, user *db.User) {
+	if user.AgentID == "" {
+		agentID, err := s.db.EnsureUserAgentID(r.Context(), user.ID)
+		if err != nil {
+			log.Printf("auth: ensure token agent id: %v", err)
+			jsonError(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		user.AgentID = agentID
+	}
 	role, _ := s.db.GetRoleByID(r.Context(), user.RoleID)
 	var perms []string
 	if role != nil {
@@ -695,6 +725,7 @@ func (s *Server) issueTokens(w http.ResponseWriter, r *http.Request, user *db.Us
 
 	au := AuthUser{
 		UserID:      user.ID,
+		AgentID:     user.AgentID,
 		Email:       user.Email,
 		DiscordID:   user.DiscordID,
 		OrgID:       user.OrgID,
@@ -729,6 +760,7 @@ func (s *Server) issueTokens(w http.ResponseWriter, r *http.Request, user *db.Us
 		RefreshToken: refreshToken,
 		User: authUser{
 			ID:          user.ID,
+			AgentID:     user.AgentID,
 			Email:       user.Email,
 			DiscordID:   user.DiscordID,
 			DisplayName: user.DisplayName,

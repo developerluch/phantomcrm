@@ -11,6 +11,7 @@ import (
 // User represents a row from the users table.
 type User struct {
 	ID            string     `json:"id"`
+	AgentID       string     `json:"agentId"`
 	Email         string     `json:"email"`
 	PasswordHash  string     `json:"-"`
 	DiscordID     string     `json:"discordId"`
@@ -30,6 +31,7 @@ type User struct {
 
 // UserUpdate holds optional fields to update on a user.
 type UserUpdate struct {
+	AgentID       *string
 	Email         *string
 	PasswordHash  *string
 	DiscordID     *string
@@ -46,10 +48,17 @@ type UserUpdate struct {
 
 // CreateUser inserts a new user row.
 func (d *DB) CreateUser(ctx context.Context, u User) error {
+	if strings.TrimSpace(u.AgentID) == "" {
+		agentID, err := GenerateAgentID()
+		if err != nil {
+			return fmt.Errorf("db: generate agent id: %w", err)
+		}
+		u.AgentID = agentID
+	}
 	_, err := d.pool.ExecContext(ctx,
-		`INSERT INTO users (id, email, password_hash, discord_id, google_id, display_name, avatar_url, org_id, role_id, is_active)
-		 VALUES ($1::UUID, $2, $3, $4, NULLIF($5,''), $6, $7, NULLIF($8,'')::UUID, $9::UUID, $10)`,
-		u.ID, u.Email, u.PasswordHash, u.DiscordID, u.GoogleID, u.DisplayName, u.AvatarURL,
+		`INSERT INTO users (id, agent_id, email, password_hash, discord_id, google_id, display_name, avatar_url, org_id, role_id, is_active)
+		 VALUES ($1::UUID, $2, $3, $4, $5, NULLIF($6,''), $7, $8, NULLIF($9,'')::UUID, $10::UUID, $11)`,
+		u.ID, u.AgentID, u.Email, u.PasswordHash, u.DiscordID, u.GoogleID, u.DisplayName, u.AvatarURL,
 		u.OrgID, u.RoleID, u.IsActive)
 	if err != nil {
 		return fmt.Errorf("db: create user: %w", err)
@@ -63,14 +72,14 @@ func (d *DB) GetUserByID(ctx context.Context, id string) (*User, error) {
 	var lastLogin, npnVerifiedAt sql.NullTime
 	var npn, canonical sql.NullString
 	err := d.pool.QueryRowContext(ctx,
-		`SELECT id::TEXT, COALESCE(email,''), COALESCE(password_hash,''),
+		`SELECT id::TEXT, COALESCE(agent_id,''), COALESCE(email,''), COALESCE(password_hash,''),
 		        COALESCE(discord_id,''), COALESCE(google_id,''),
 		        COALESCE(display_name,''), COALESCE(avatar_url,''),
 		        npn, canonical_name, npn_verified_at,
 		        COALESCE(org_id::TEXT,''), role_id::TEXT,
 		        COALESCE(is_active, true), last_login_at, created_at, updated_at
 		 FROM users WHERE id = $1::UUID`, id).Scan(
-		&u.ID, &u.Email, &u.PasswordHash,
+		&u.ID, &u.AgentID, &u.Email, &u.PasswordHash,
 		&u.DiscordID, &u.GoogleID,
 		&u.DisplayName, &u.AvatarURL,
 		&npn, &canonical, &npnVerifiedAt,
@@ -95,14 +104,14 @@ func (d *DB) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var lastLogin, npnVerifiedAt sql.NullTime
 	var npn, canonical sql.NullString
 	err := d.pool.QueryRowContext(ctx,
-		`SELECT id::TEXT, COALESCE(email,''), COALESCE(password_hash,''),
+		`SELECT id::TEXT, COALESCE(agent_id,''), COALESCE(email,''), COALESCE(password_hash,''),
 		        COALESCE(discord_id,''), COALESCE(google_id,''),
 		        COALESCE(display_name,''), COALESCE(avatar_url,''),
 		        npn, canonical_name, npn_verified_at,
 		        COALESCE(org_id::TEXT,''), role_id::TEXT,
 		        COALESCE(is_active, true), last_login_at, created_at, updated_at
 		 FROM users WHERE email = $1`, email).Scan(
-		&u.ID, &u.Email, &u.PasswordHash,
+		&u.ID, &u.AgentID, &u.Email, &u.PasswordHash,
 		&u.DiscordID, &u.GoogleID,
 		&u.DisplayName, &u.AvatarURL,
 		&npn, &canonical, &npnVerifiedAt,
@@ -127,14 +136,14 @@ func (d *DB) GetUserByDiscordID(ctx context.Context, discordID string) (*User, e
 	var lastLogin, npnVerifiedAt sql.NullTime
 	var npn, canonical sql.NullString
 	err := d.pool.QueryRowContext(ctx,
-		`SELECT id::TEXT, COALESCE(email,''), COALESCE(password_hash,''),
+		`SELECT id::TEXT, COALESCE(agent_id,''), COALESCE(email,''), COALESCE(password_hash,''),
 		        COALESCE(discord_id,''), COALESCE(google_id,''),
 		        COALESCE(display_name,''), COALESCE(avatar_url,''),
 		        npn, canonical_name, npn_verified_at,
 		        COALESCE(org_id::TEXT,''), role_id::TEXT,
 		        COALESCE(is_active, true), last_login_at, created_at, updated_at
 		 FROM users WHERE discord_id = $1`, discordID).Scan(
-		&u.ID, &u.Email, &u.PasswordHash,
+		&u.ID, &u.AgentID, &u.Email, &u.PasswordHash,
 		&u.DiscordID, &u.GoogleID,
 		&u.DisplayName, &u.AvatarURL,
 		&npn, &canonical, &npnVerifiedAt,
@@ -159,14 +168,14 @@ func (d *DB) GetUserByGoogleID(ctx context.Context, googleID string) (*User, err
 	var lastLogin, npnVerifiedAt sql.NullTime
 	var npn, canonical sql.NullString
 	err := d.pool.QueryRowContext(ctx,
-		`SELECT id::TEXT, COALESCE(email,''), COALESCE(password_hash,''),
+		`SELECT id::TEXT, COALESCE(agent_id,''), COALESCE(email,''), COALESCE(password_hash,''),
 		        COALESCE(discord_id,''), COALESCE(google_id,''),
 		        COALESCE(display_name,''), COALESCE(avatar_url,''),
 		        npn, canonical_name, npn_verified_at,
 		        COALESCE(org_id::TEXT,''), role_id::TEXT,
 		        COALESCE(is_active, true), last_login_at, created_at, updated_at
 		 FROM users WHERE google_id = $1`, googleID).Scan(
-		&u.ID, &u.Email, &u.PasswordHash,
+		&u.ID, &u.AgentID, &u.Email, &u.PasswordHash,
 		&u.DiscordID, &u.GoogleID,
 		&u.DisplayName, &u.AvatarURL,
 		&npn, &canonical, &npnVerifiedAt,
@@ -194,6 +203,11 @@ func (d *DB) UpdateUser(ctx context.Context, id string, updates UserUpdate) erro
 	if updates.Email != nil {
 		sets = append(sets, fmt.Sprintf("email = $%d", argN))
 		args = append(args, *updates.Email)
+		argN++
+	}
+	if updates.AgentID != nil {
+		sets = append(sets, fmt.Sprintf("agent_id = $%d", argN))
+		args = append(args, *updates.AgentID)
 		argN++
 	}
 	if updates.PasswordHash != nil {
@@ -269,7 +283,7 @@ func (d *DB) UpdateUser(ctx context.Context, id string, updates UserUpdate) erro
 // ListUsers returns all users ordered by creation date.
 func (d *DB) ListUsers(ctx context.Context) ([]User, error) {
 	rows, err := d.pool.QueryContext(ctx,
-		`SELECT id::TEXT, COALESCE(email,''), COALESCE(password_hash,''),
+		`SELECT id::TEXT, COALESCE(agent_id,''), COALESCE(email,''), COALESCE(password_hash,''),
 		        COALESCE(discord_id,''), COALESCE(google_id,''),
 		        COALESCE(display_name,''), COALESCE(avatar_url,''),
 		        npn, canonical_name, npn_verified_at,
@@ -287,7 +301,7 @@ func (d *DB) ListUsers(ctx context.Context) ([]User, error) {
 		var lastLogin, npnVerifiedAt sql.NullTime
 		var npn, canonical sql.NullString
 		if err := rows.Scan(
-			&u.ID, &u.Email, &u.PasswordHash,
+			&u.ID, &u.AgentID, &u.Email, &u.PasswordHash,
 			&u.DiscordID, &u.GoogleID,
 			&u.DisplayName, &u.AvatarURL,
 			&npn, &canonical, &npnVerifiedAt,
@@ -303,6 +317,18 @@ func (d *DB) ListUsers(ctx context.Context) ([]User, error) {
 		result = append(result, u)
 	}
 	return result, rows.Err()
+}
+
+// AgentIDExists reports whether a business Agent ID belongs to an active account.
+func (d *DB) AgentIDExists(ctx context.Context, agentID string) (bool, error) {
+	var exists bool
+	err := d.pool.QueryRowContext(ctx,
+		`SELECT EXISTS(SELECT 1 FROM users WHERE agent_id = $1 AND COALESCE(is_active, true))`,
+		strings.TrimSpace(agentID)).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("db: agent id exists: %w", err)
+	}
+	return exists, nil
 }
 
 // UpdateLastLogin sets last_login_at to NOW() for the given user.

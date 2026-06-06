@@ -9,28 +9,28 @@ import (
 )
 
 type Sale struct {
-	ID           string     `json:"id"`
-	OrgID        *string    `json:"orgId"`
-	AgentID      string     `json:"agentId"`
-	ClientName   string     `json:"clientName"`
-	PolicyType   string     `json:"policyType"`
-	Carrier      string     `json:"carrier"`
-	Premium      float64    `json:"premium"`
-	Commission   *float64   `json:"commission"`
-	Status       string     `json:"status"`
-	PolicyNumber *string    `json:"policyNumber"`
-	SubmittedAt  time.Time  `json:"submittedAt"`
-	ApprovedAt   *time.Time `json:"approvedAt"`
-	IssuedAt     *time.Time `json:"issuedAt"`
-	PaidAt       *time.Time `json:"paidAt"`
-	Notes         *string    `json:"notes"`
-	ClientDOB     *string    `json:"clientDOB"`
-	ClientAddress *string    `json:"clientAddress"`
-	ClientPhone   *string    `json:"clientPhone"`
-	ClientEmail   *string    `json:"clientEmail"`
-	FaceAmount    *float64   `json:"faceAmount"`
-	PaymentMode   *string    `json:"paymentMode"`
-	Transcript    *string    `json:"transcript"`
+	ID             string     `json:"id"`
+	OrgID          *string    `json:"orgId"`
+	AgentID        string     `json:"agentId"`
+	ClientName     string     `json:"clientName"`
+	PolicyType     string     `json:"policyType"`
+	Carrier        string     `json:"carrier"`
+	Premium        float64    `json:"premium"`
+	Commission     *float64   `json:"commission"`
+	Status         string     `json:"status"`
+	PolicyNumber   *string    `json:"policyNumber"`
+	SubmittedAt    time.Time  `json:"submittedAt"`
+	ApprovedAt     *time.Time `json:"approvedAt"`
+	IssuedAt       *time.Time `json:"issuedAt"`
+	PaidAt         *time.Time `json:"paidAt"`
+	Notes          *string    `json:"notes"`
+	ClientDOB      *string    `json:"clientDOB"`
+	ClientAddress  *string    `json:"clientAddress"`
+	ClientPhone    *string    `json:"clientPhone"`
+	ClientEmail    *string    `json:"clientEmail"`
+	FaceAmount     *float64   `json:"faceAmount"`
+	PaymentMode    *string    `json:"paymentMode"`
+	Transcript     *string    `json:"transcript"`
 	ProductName    *string    `json:"productName"`
 	InsuredName    *string    `json:"insuredName"`
 	PostcardSentAt *time.Time `json:"postcardSentAt,omitempty"`
@@ -112,10 +112,12 @@ const salesCols = `s.id::TEXT, s.org_id::TEXT, s.agent_discord_id, s.client_name
 		s.client_dob, s.client_address, s.client_phone, s.client_email, s.face_amount, s.payment_mode, s.transcript, s.product_name,
 		s.insured_name, s.postcard_sent_at,
 		s.created_at, s.updated_at,
-		COALESCE(oa.first_name, '') AS agent_first_name,
-		COALESCE(oa.last_name, '') AS agent_last_name`
+		COALESCE(NULLIF(u.display_name, ''), oa.first_name, '') AS agent_first_name,
+		CASE WHEN u.agent_id IS NOT NULL THEN '' ELSE COALESCE(oa.last_name, '') END AS agent_last_name`
 
-const salesFrom = `FROM sales s LEFT JOIN onboarding_agents oa ON oa.discord_id::TEXT = s.agent_discord_id`
+const salesFrom = `FROM sales s
+	LEFT JOIN users u ON u.agent_id = s.agent_discord_id
+	LEFT JOIN onboarding_agents oa ON oa.discord_id::TEXT = s.agent_discord_id`
 
 func (d *DB) CreateSale(ctx context.Context, s *Sale) (string, error) {
 	var id string
@@ -271,6 +273,25 @@ func (d *DB) ListSalesByAgent(ctx context.Context, agentID string, status string
 	return result, rows.Err()
 }
 
+func (d *DB) SalePolicyDuplicateExists(ctx context.Context, agentID, policyNumber string) (bool, error) {
+	policyNumber = strings.TrimSpace(policyNumber)
+	if policyNumber == "" {
+		return false, nil
+	}
+	var exists bool
+	err := d.pool.QueryRowContext(ctx,
+		`SELECT EXISTS(
+			SELECT 1 FROM sales
+			WHERE agent_discord_id = $1
+			  AND LOWER(policy_number) = LOWER($2)
+		)`,
+		strings.TrimSpace(agentID), policyNumber).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("db: sale policy duplicate exists: %w", err)
+	}
+	return exists, nil
+}
+
 func (d *DB) GetAgentSaleStats(ctx context.Context, agentID string) (*SaleStats, error) {
 	stats := &SaleStats{ByStatus: map[string]int{}, ByPolicyType: map[string]int{}}
 
@@ -361,14 +382,14 @@ type PipelineBucket struct {
 // PipelineSummary aggregates sales by status and computes derived ratios.
 // Matches the frontend src/types/portal.ts:PipelineSummary contract.
 type PipelineSummary struct {
-	Submitted        PipelineBucket `json:"submitted"`
-	Approved         PipelineBucket `json:"approved"`
-	Issued           PipelineBucket `json:"issued"`
-	OnBooks          PipelineBucket `json:"onBooks"`
-	Paid             PipelineBucket `json:"paid"`
-	Cancelled        PipelineBucket `json:"cancelled"`
-	CloseRate        float64        `json:"closeRate"`
-	PersistencyRate  float64        `json:"persistencyRate"`
+	Submitted       PipelineBucket `json:"submitted"`
+	Approved        PipelineBucket `json:"approved"`
+	Issued          PipelineBucket `json:"issued"`
+	OnBooks         PipelineBucket `json:"onBooks"`
+	Paid            PipelineBucket `json:"paid"`
+	Cancelled       PipelineBucket `json:"cancelled"`
+	CloseRate       float64        `json:"closeRate"`
+	PersistencyRate float64        `json:"persistencyRate"`
 }
 
 // GetSalesPipelineSummary returns count + total premium grouped by status,

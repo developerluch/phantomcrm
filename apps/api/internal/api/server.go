@@ -18,15 +18,6 @@ import (
 	"phantomcrm-api/internal/sms"
 )
 
-// WebSocket upgrader
-var upgrader = gorillaws.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
-
 // Server is the standalone REST API server.
 type Server struct {
 	cfg          *config.Config
@@ -315,11 +306,14 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 	// PUT/DELETE {saleID} pattern and returned 405.
 	mux.HandleFunc("GET /api/v1/portal/sales/pipeline", auth(s.handleSalesPipeline))
 	mux.HandleFunc("GET /api/v1/portal/sales/analytics", auth(s.handleSalesAnalytics))
+	mux.HandleFunc("POST /api/v1/portal/sales/parse-csv-rows", auth(s.handleParseSalesCSVRows))
+	mux.HandleFunc("POST /api/v1/portal/sales/parse-document", auth(s.handleParseSalesDocument))
+	mux.HandleFunc("POST /api/v1/portal/sales/bulk-import", auth(s.handleBulkImportSales))
+	mux.HandleFunc("POST /api/v1/portal/sales/parse-transcript", auth(s.handleParseTranscript))
 	mux.HandleFunc("GET /api/v1/portal/sales/agent/{discordID}", auth(s.handleGetAgentSales))
 	mux.HandleFunc("GET /api/v1/portal/sales/agent/{discordID}/stats", auth(s.handleGetAgentSaleStats))
 	mux.HandleFunc("PUT /api/v1/portal/sales/{saleID}", auth(s.handleUpdateSale))
 	mux.HandleFunc("DELETE /api/v1/portal/sales/{saleID}", auth(s.handleDeleteSale))
-	mux.HandleFunc("POST /api/v1/portal/sales/parse-transcript", auth(s.handleParseTranscript))
 
 	// Licenses
 	mux.HandleFunc("GET /api/v1/licenses", auth(s.handleListLicenses))
@@ -351,7 +345,6 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 	mux.HandleFunc("GET /api/v1/servers", auth(s.handleListServers))
 	mux.HandleFunc("POST /api/v1/servers", auth(s.handleCreateServer))
 	mux.HandleFunc("DELETE /api/v1/servers/{serverID}", auth(s.handleDeleteServer))
-
 
 	// Analytics
 	mux.HandleFunc("GET /api/v1/analytics/conversion", auth(s.handleConversionAnalytics))
@@ -445,7 +438,12 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 	mux.HandleFunc("GET /api/v1/calcom/slots", auth(s.handleCalcomSlots))
 
 	// AI Chat
+	mux.HandleFunc("GET /api/v1/ai/settings", auth(s.handleGetAISettings))
+	mux.HandleFunc("PUT /api/v1/ai/settings", auth(s.handleUpdateAISettings))
 	mux.HandleFunc("POST /api/v1/chat", auth(s.handleChat))
+	mux.HandleFunc("GET /api/v1/chat/actions", auth(s.handleListChatActions))
+	mux.HandleFunc("POST /api/v1/chat/actions/{actionID}/confirm", auth(s.handleConfirmChatAction))
+	mux.HandleFunc("POST /api/v1/chat/actions/{actionID}/dismiss", auth(s.handleDismissChatAction))
 	mux.HandleFunc("GET /api/v1/chat/conversations", auth(s.handleListConversations))
 	mux.HandleFunc("GET /api/v1/chat/conversations/{conversationID}/messages", auth(s.handleGetConversationMessages))
 	mux.HandleFunc("DELETE /api/v1/chat/conversations/{conversationID}", auth(s.handleDeleteConversation))
@@ -572,6 +570,13 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	upgrader := gorillaws.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			return s.isAllowedOrigin(r.Header.Get("Origin"))
+		},
+	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade error: %v", err)
