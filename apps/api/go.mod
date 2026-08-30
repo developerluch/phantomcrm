@@ -1,6 +1,6 @@
 module github.com/developerluch/phantomcrm/apps/api
 
-go 1.24.1
+go 1.25.0
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
@@ -10,10 +10,10 @@ require (
 	github.com/lib/pq v1.11.2
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/resend/resend-go/v3 v3.1.0
-	golang.org/x/crypto v0.44.0
+	golang.org/x/crypto v0.55.0
 )
 
 require (
 	github.com/stretchr/testify v1.9.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 )
