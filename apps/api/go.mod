@@ -9,7 +9,7 @@ require (
 	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	github.com/lib/pq v1.11.2
 	github.com/oklog/ulid/v2 v2.1.1
-	github.com/resend/resend-go/v3 v3.1.0
+	github.com/resend/resend-go/v3 v3.17.0
 	golang.org/x/crypto v0.44.0
 )
 
