@@ -12,7 +12,7 @@ import (
 type DripCampaign struct {
 	ID           string    `json:"id"`
 	Name         string    `json:"name"`
-	Channel      string    `json:"channel"`      // "whatsapp" or "sms"
+	Channel      string    `json:"channel"` // "whatsapp" or "sms"
 	TriggerStage string    `json:"triggerStage"`
 	IsActive     bool      `json:"isActive"`
 	CreatedAt    time.Time `json:"createdAt"`

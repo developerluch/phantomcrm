@@ -36,23 +36,23 @@ type Recruit struct {
 	UpdatedAt         time.Time  `json:"updatedAt"`
 
 	// Expanded pipeline fields
-	LeadSource               *string          `json:"leadSource"`
-	IsLicensed               bool             `json:"isLicensed"`
-	LicenseState             *string          `json:"licenseState"`
-	LicenseNumber            *string          `json:"licenseNumber"`
-	LicenseExpiryDate        *time.Time       `json:"licenseExpiryDate"`
-	CourseEnrolledDate       *time.Time       `json:"courseEnrolledDate"`
-	CourseName               *string          `json:"courseName"`
-	CourseProgress           *int             `json:"courseProgress"`
-	ContractingStatus        *string          `json:"contractingStatus"`
-	ContractingCarrier       *string          `json:"contractingCarrier"`
-	ContractingSubmittedDate *time.Time       `json:"contractingSubmittedDate"`
-	DiscordJoinedDate        *time.Time       `json:"discordJoinedDate"`
-	OnboardingChecklist      json.RawMessage  `json:"onboardingChecklist"`
-	State                    *string          `json:"state"`
-	PriorExperience          *string          `json:"priorExperience"`
-	IsCurrentlyLicensed      *bool            `json:"isCurrentlyLicensed"`
-	HowHeard                 *string          `json:"howHeard"`
+	LeadSource               *string         `json:"leadSource"`
+	IsLicensed               bool            `json:"isLicensed"`
+	LicenseState             *string         `json:"licenseState"`
+	LicenseNumber            *string         `json:"licenseNumber"`
+	LicenseExpiryDate        *time.Time      `json:"licenseExpiryDate"`
+	CourseEnrolledDate       *time.Time      `json:"courseEnrolledDate"`
+	CourseName               *string         `json:"courseName"`
+	CourseProgress           *int            `json:"courseProgress"`
+	ContractingStatus        *string         `json:"contractingStatus"`
+	ContractingCarrier       *string         `json:"contractingCarrier"`
+	ContractingSubmittedDate *time.Time      `json:"contractingSubmittedDate"`
+	DiscordJoinedDate        *time.Time      `json:"discordJoinedDate"`
+	OnboardingChecklist      json.RawMessage `json:"onboardingChecklist"`
+	State                    *string         `json:"state"`
+	PriorExperience          *string         `json:"priorExperience"`
+	IsCurrentlyLicensed      *bool           `json:"isCurrentlyLicensed"`
+	HowHeard                 *string         `json:"howHeard"`
 }
 
 type RecruitStats struct {

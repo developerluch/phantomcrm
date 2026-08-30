@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"phantomcrm-api/internal/events"
+	"github.com/developerluch/phantomcrm/apps/api/internal/events"
 )
 
 // AddTag attaches a tag to a contact. Idempotent — re-adding is a no-op.
@@ -111,4 +111,3 @@ func (d *DB) GetTagsForContact(ctx context.Context, contactID string) ([]string,
 	}
 	return out, rows.Err()
 }
-

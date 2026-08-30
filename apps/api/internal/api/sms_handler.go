@@ -10,9 +10,9 @@ import (
 	"sort"
 	"strconv"
 
-	"phantomcrm-api/internal/api/websocket"
-	"phantomcrm-api/internal/channels"
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/api/websocket"
+	"github.com/developerluch/phantomcrm/apps/api/internal/channels"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 func (s *Server) handleSendSms(w http.ResponseWriter, r *http.Request) {

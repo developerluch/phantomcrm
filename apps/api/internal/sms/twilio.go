@@ -14,11 +14,11 @@ import (
 // Client is a pure HTTP client for the Twilio REST API (no SDK dependency).
 // Returns nil from NewClient if not configured (nil-safe pattern).
 type Client struct {
-	accountSID     string
-	authToken      string
-	fromNumber     string
-	waFromNumber   string // WhatsApp-enabled Twilio number (may differ from SMS)
-	httpClient     *http.Client
+	accountSID   string
+	authToken    string
+	fromNumber   string
+	waFromNumber string // WhatsApp-enabled Twilio number (may differ from SMS)
+	httpClient   *http.Client
 }
 
 // NewClient creates a Twilio client. Returns nil if any param is empty.

@@ -14,7 +14,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 const (

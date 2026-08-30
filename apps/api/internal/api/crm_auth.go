@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"phantomcrm-api/internal/repo"
+	"github.com/developerluch/phantomcrm/apps/api/internal/repo"
 )
 
 // isCRMAdmin reports whether the authed user has unrestricted CRM access —

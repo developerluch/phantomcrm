@@ -1,0 +1,212 @@
+import { lazy, type ComponentType } from 'react'
+import type { IconProps } from '@tabler/icons-react'
+import {
+  IconUsers,
+  IconChartBar,
+  IconActivity,
+  IconAlertTriangle,
+  IconTrophy,
+  IconTrendingUp,
+  IconChartPie,
+  IconCash,
+  IconUserPlus,
+  IconReceiptRefund,
+  IconTargetArrow,
+  IconCalendar,
+  IconPercentage,
+  IconClockHour4,
+  IconGridDots,
+  IconChartAreaLine,
+} from '@tabler/icons-react'
+
+export interface WidgetDefinition {
+  type: string
+  title: string
+  description: string
+  features: string[]
+  icon: ComponentType<IconProps>
+  component: ComponentType
+  defaultSize: { w: number; h: number }
+  minSize: { w: number; h: number }
+}
+
+const CHARGEBACKS_BACKEND_ENABLED = import.meta.env.VITE_CHARGEBACKS_BACKEND === 'true'
+
+const baseWidgetRegistry: Record<string, WidgetDefinition> = {
+  'stat-cards': {
+    type: 'stat-cards',
+    title: 'Stat Cards',
+    description: 'Key metrics at a glance',
+    features: ['Total agents, revenue, expenses', 'Sparkline trends per metric', 'Live data from API'],
+    icon: IconUsers,
+    component: lazy(() => import('../components/widgets/StatCardsWidget')),
+    defaultSize: { w: 12, h: 3 },
+    minSize: { w: 6, h: 2 },
+  },
+  'funnel-chart': {
+    type: 'funnel-chart',
+    title: 'Pipeline Funnel',
+    description: 'Visual funnel of agent stages',
+    features: ['Visual pipeline stages', 'Animated bar transitions', 'Hover for stage counts'],
+    icon: IconChartBar,
+    component: lazy(() => import('../components/widgets/FunnelChartWidget')),
+    defaultSize: { w: 6, h: 5 },
+    minSize: { w: 4, h: 3 },
+  },
+  'activity-feed': {
+    type: 'activity-feed',
+    title: 'Recent Activity',
+    description: 'Live activity stream',
+    features: ['Real-time event stream', 'Sales, recruits, expenses', 'Timestamped entries'],
+    icon: IconActivity,
+    component: lazy(() => import('../components/widgets/ActivityFeedWidget')),
+    defaultSize: { w: 4, h: 5 },
+    minSize: { w: 3, h: 3 },
+  },
+  'at-risk': {
+    type: 'at-risk',
+    title: 'At-Risk Agents',
+    description: 'Agents needing attention',
+    features: ['Flags inactive agents', 'Days since last activity', 'Quick action buttons'],
+    icon: IconAlertTriangle,
+    component: lazy(() => import('../components/widgets/AtRiskWidget')),
+    defaultSize: { w: 4, h: 4 },
+    minSize: { w: 3, h: 2 },
+  },
+  'leaderboard': {
+    type: 'leaderboard',
+    title: 'Leaderboard',
+    description: 'Top performing agents',
+    features: ['Ranked by production', 'Medal indicators', 'Period filtering'],
+    icon: IconTrophy,
+    component: lazy(() => import('../components/widgets/LeaderboardWidget')),
+    defaultSize: { w: 6, h: 4 },
+    minSize: { w: 4, h: 3 },
+  },
+  'revenue-trend': {
+    type: 'revenue-trend',
+    title: 'Revenue Trend',
+    description: 'Revenue overview with period comparison',
+    features: ['Area chart with gradient', 'Period comparison toggle', 'Week/month/quarter views'],
+    icon: IconTrendingUp,
+    component: lazy(() => import('../components/widgets/RevenueWidget')),
+    defaultSize: { w: 8, h: 5 },
+    minSize: { w: 6, h: 4 },
+  },
+  'pipeline-overview': {
+    type: 'pipeline-overview',
+    title: 'Pipeline Overview',
+    description: 'Pipeline stages bar chart',
+    features: ['Stacked bar by stage', 'Color-coded statuses', 'Click to filter'],
+    icon: IconChartBar,
+    component: lazy(() => import('../components/widgets/PipelineWidget')),
+    defaultSize: { w: 6, h: 5 },
+    minSize: { w: 4, h: 3 },
+  },
+  'agent-distribution': {
+    type: 'agent-distribution',
+    title: 'Agent Distribution',
+    description: 'Donut chart of agent statuses',
+    features: ['Donut chart breakdown', 'Active vs inactive split', 'Percentage labels'],
+    icon: IconChartPie,
+    component: lazy(() => import('../components/widgets/DistributionWidget')),
+    defaultSize: { w: 4, h: 4 },
+    minSize: { w: 3, h: 3 },
+  },
+  'finance-summary': {
+    type: 'finance-summary',
+    title: 'Finance Summary',
+    description: 'Revenue vs Expenses vs Net Profit',
+    features: ['Revenue vs expenses', 'Net profit trend line', 'Monthly comparison'],
+    icon: IconCash,
+    component: lazy(() => import('../components/widgets/FinanceSummaryWidget')),
+    defaultSize: { w: 6, h: 4 },
+    minSize: { w: 4, h: 3 },
+  },
+  'recruit-stats': {
+    type: 'recruit-stats',
+    title: 'Recruit Stats',
+    description: 'Key recruit metrics with sparklines',
+    features: ['New recruits count', 'Conversion sparklines', 'Week-over-week delta'],
+    icon: IconUserPlus,
+    component: lazy(() => import('../components/widgets/RecruitStatsWidget')),
+    defaultSize: { w: 4, h: 3 },
+    minSize: { w: 3, h: 2 },
+  },
+  'chargeback-tracker': {
+    type: 'chargeback-tracker',
+    title: 'Chargeback Tracker',
+    description: 'Chargeback amount and recovery rate',
+    features: ['Total chargebacks', 'Recovery rate gauge', 'Monthly trend'],
+    icon: IconReceiptRefund,
+    component: lazy(() => import('../components/widgets/ChargebackWidget')),
+    defaultSize: { w: 4, h: 3 },
+    minSize: { w: 3, h: 2 },
+  },
+  'lead-roi': {
+    type: 'lead-roi',
+    title: 'Lead ROI',
+    description: 'Lead source ROI comparison',
+    features: ['Cost per lead by source', 'ROI percentage bars', 'Best performing channel'],
+    icon: IconTargetArrow,
+    component: lazy(() => import('../components/widgets/LeadROIWidget')),
+    defaultSize: { w: 6, h: 4 },
+    minSize: { w: 4, h: 3 },
+  },
+  'upcoming-appointments': {
+    type: 'upcoming-appointments',
+    title: 'Upcoming Appointments',
+    description: 'Next scheduled appointments',
+    features: ['Next 7 days calendar', 'Agent and client info', 'Clickable to reschedule'],
+    icon: IconCalendar,
+    component: lazy(() => import('../components/widgets/AppointmentsWidget')),
+    defaultSize: { w: 4, h: 4 },
+    minSize: { w: 3, h: 3 },
+  },
+  'conversion-rate': {
+    type: 'conversion-rate',
+    title: 'Conversion Rate',
+    description: 'Conversion funnel and rate trend',
+    features: ['Funnel conversion %', 'Stage drop-off rates', 'Trend over time'],
+    icon: IconPercentage,
+    component: lazy(() => import('../components/widgets/ConversionWidget')),
+    defaultSize: { w: 4, h: 3 },
+    minSize: { w: 3, h: 2 },
+  },
+  'stage-duration': {
+    type: 'stage-duration',
+    title: 'Stage Duration',
+    description: 'Average days per pipeline stage',
+    features: ['Avg days per stage', 'Horizontal bar chart', 'Bottleneck highlighting'],
+    icon: IconClockHour4,
+    component: lazy(() => import('../components/widgets/StageDurationWidget')),
+    defaultSize: { w: 6, h: 4 },
+    minSize: { w: 4, h: 3 },
+  },
+  'quick-actions': {
+    type: 'quick-actions',
+    title: 'Quick Actions',
+    description: 'Add Recruit, Log Sale, Log Expense, AI Chat',
+    features: ['Add Recruit shortcut', 'Log Sale / Expense', 'AI Chat launcher'],
+    icon: IconGridDots,
+    component: lazy(() => import('../components/widgets/QuickActionsWidget')),
+    defaultSize: { w: 4, h: 3 },
+    minSize: { w: 3, h: 2 },
+  },
+  'master-chart': {
+    type: 'master-chart',
+    title: 'Master Chart',
+    description: 'Switchable dataset chart',
+    features: ['Switch between datasets', 'Area/bar/line modes', 'Full-width display'],
+    icon: IconChartAreaLine,
+    component: lazy(() => import('../components/widgets/MasterChartWidgetWrapper')),
+    defaultSize: { w: 12, h: 6 },
+    minSize: { w: 8, h: 4 },
+  },
+}
+
+export const widgetRegistry: Record<string, WidgetDefinition> = Object.fromEntries(
+  Object.entries(baseWidgetRegistry).filter(
+    ([type]) => CHARGEBACKS_BACKEND_ENABLED || type !== 'chargeback-tracker',
+  ),
+)

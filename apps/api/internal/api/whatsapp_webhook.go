@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"phantomcrm-api/internal/api/websocket"
-	"phantomcrm-api/internal/channels"
-	"phantomcrm-api/internal/sms"
+	"github.com/developerluch/phantomcrm/apps/api/internal/api/websocket"
+	"github.com/developerluch/phantomcrm/apps/api/internal/channels"
+	"github.com/developerluch/phantomcrm/apps/api/internal/sms"
 )
 
 // handleWhatsAppWebhook receives inbound WhatsApp messages from Twilio.
@@ -29,7 +29,7 @@ func (s *Server) handleWhatsAppWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	from := r.FormValue("From")               // "whatsapp:+15551234567"
+	from := r.FormValue("From") // "whatsapp:+15551234567"
 	body := r.FormValue("Body")
 	msgSid := r.FormValue("MessageSid")
 	profileName := r.FormValue("ProfileName") // WhatsApp display name

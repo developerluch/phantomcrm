@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"phantomcrm-api/internal/channels"
-	"phantomcrm-api/internal/repo"
+	"github.com/developerluch/phantomcrm/apps/api/internal/channels"
+	"github.com/developerluch/phantomcrm/apps/api/internal/repo"
 )
 
 func TestWriteChannelError_Mapping(t *testing.T) {

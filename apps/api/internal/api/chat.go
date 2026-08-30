@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 // claudeContentBlock represents a content block in a Claude API response.

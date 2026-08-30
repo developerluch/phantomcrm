@@ -8,16 +8,16 @@ import (
 
 // ApprovalRequest represents a row in the approval_requests table.
 type ApprovalRequest struct {
-	ID              int
-	AgentDiscordID  int64
-	GuildID         int64
-	Agency          string
-	OwnerDiscordID  int64
-	Status          string
-	DenialReason    string
-	RequestedAt     time.Time
-	RespondedAt     *time.Time
-	DMMessageID     string
+	ID             int
+	AgentDiscordID int64
+	GuildID        int64
+	Agency         string
+	OwnerDiscordID int64
+	Status         string
+	DenialReason   string
+	RequestedAt    time.Time
+	RespondedAt    *time.Time
+	DMMessageID    string
 }
 
 // CreateApprovalRequest inserts a new approval request (upserts on conflict).

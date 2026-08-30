@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/developerluch/phantomcrm/apps/api/internal/events"
 	"github.com/oklog/ulid/v2"
-	"phantomcrm-api/internal/events"
 )
 
 // Contact is the supertype row for any person or business tracked in the CRM.
@@ -124,7 +124,7 @@ func buildFullName(first, last string) string {
 //
 // Merge semantics: a non-null field on the existing contact is never
 // overwritten by a null/empty field on the incoming source. Use
-// COALESCE(NULLIF($n, ''), column) for every mergeable column.
+// COALESCE(NULLIF($n, ”), column) for every mergeable column.
 //
 // On insert, emits contact.created. On update (with at least one changed
 // column), emits contact.updated with a payload listing the changed fields.

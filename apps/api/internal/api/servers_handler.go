@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 func (s *Server) handleListServers(w http.ResponseWriter, r *http.Request) {

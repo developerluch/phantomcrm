@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 // handleWavvAgentStats returns production stats for a single agent.

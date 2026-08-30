@@ -8,18 +8,18 @@ import (
 )
 
 type Appointment struct {
-	ID          string     `json:"id"`
-	OrgID       *string    `json:"orgId"`
-	AgentID     string     `json:"agentId"`
-	Title       string     `json:"title"`
-	Description *string    `json:"description"`
-	StartTime   time.Time  `json:"startTime"`
-	EndTime     time.Time  `json:"endTime"`
-	Status      string     `json:"status"`
-	MeetingLink *string    `json:"meetingLink"`
-	Notes       *string    `json:"notes"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   time.Time  `json:"updatedAt"`
+	ID          string    `json:"id"`
+	OrgID       *string   `json:"orgId"`
+	AgentID     string    `json:"agentId"`
+	Title       string    `json:"title"`
+	Description *string   `json:"description"`
+	StartTime   time.Time `json:"startTime"`
+	EndTime     time.Time `json:"endTime"`
+	Status      string    `json:"status"`
+	MeetingLink *string   `json:"meetingLink"`
+	Notes       *string   `json:"notes"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 const apptCols = `id::TEXT, org_id::TEXT, agent_discord_id, title, description, start_time, end_time, status, meeting_link, notes, created_at, updated_at`

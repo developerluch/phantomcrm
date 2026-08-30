@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/developerluch/phantomcrm/apps/api/internal/events"
 	"github.com/oklog/ulid/v2"
-	"phantomcrm-api/internal/events"
 )
 
 // Address is a physical address attached to a contact. Multiple addresses per

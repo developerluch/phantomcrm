@@ -91,8 +91,8 @@ type mapRegistry struct {
 	// entity → field name → spec. Custom-field prefixes are stored in
 	// customPrefixes (e.g. "customFields.") so Resolve can match
 	// "customFields.partner_id" without enumerating keys at boot.
-	fields          map[string]map[string]FieldSpec
-	customPrefixes  map[string][]customPrefix
+	fields         map[string]map[string]FieldSpec
+	customPrefixes map[string][]customPrefix
 }
 
 // customPrefix describes a dynamic family of fields — any name starting with
@@ -192,7 +192,7 @@ func ContactsRegistry() FieldRegistry {
 		FieldSpec{Name: "fullName", Column: "contacts.full_name", Type: FieldText,
 			RequiresIndex: IndexTrigram},
 		FieldSpec{Name: "email", Column: "contacts.email", Type: FieldText,
-			AllowedOps: []Op{OpEq, OpNeq, OpIn, OpNin, OpContains, OpStartsWith, OpEndsWith, OpExists},
+			AllowedOps:    []Op{OpEq, OpNeq, OpIn, OpNin, OpContains, OpStartsWith, OpEndsWith, OpExists},
 			RequiresIndex: IndexTrigram},
 		FieldSpec{Name: "phone", Column: "contacts.phone", Type: FieldText},
 		FieldSpec{Name: "phoneNormalized", Column: "contacts.phone_normalized", Type: FieldText,

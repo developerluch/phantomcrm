@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"phantomcrm-api/internal/api/websocket"
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/api/websocket"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 // startDripProcessor runs the drip campaign processor in the background.

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 // handleListDripCampaigns returns all drip campaigns.

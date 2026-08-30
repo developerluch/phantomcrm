@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"phantomcrm-api/internal/api/websocket"
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/api/websocket"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 // handleListPendingJoins returns pending join requests filtered by guild_id query param.

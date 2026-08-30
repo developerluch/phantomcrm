@@ -14,9 +14,9 @@ type funnelStage struct {
 }
 
 type summaryResponse struct {
-	TotalActive int `json:"totalActive"`
-	TotalKicked int `json:"totalKicked"`
-	AtRisk      int `json:"atRisk"`
+	TotalActive int           `json:"totalActive"`
+	TotalKicked int           `json:"totalKicked"`
+	AtRisk      int           `json:"atRisk"`
 	Funnel      []funnelStage `json:"funnel"`
 }
 

@@ -60,12 +60,12 @@ func (d *DB) GetWavvOverview(ctx context.Context, from, to time.Time) (map[strin
 	}
 
 	return map[string]interface{}{
-		"totalDials":       totalDials,
-		"totalConnections": totalConnections,
-		"totalTalkMins":    totalTalk,
+		"totalDials":        totalDials,
+		"totalConnections":  totalConnections,
+		"totalTalkMins":     totalTalk,
 		"totalAppointments": totalAppts,
-		"totalPolicies":    totalPolicies,
-		"activeAgents":     agentCount,
-		"connectRate":      connectRate,
+		"totalPolicies":     totalPolicies,
+		"activeAgents":      agentCount,
+		"connectRate":       connectRate,
 	}, nil
 }

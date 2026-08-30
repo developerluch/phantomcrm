@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"time"
 
-	"phantomcrm-api/internal/channels"
-	"phantomcrm-api/internal/repo"
+	"github.com/developerluch/phantomcrm/apps/api/internal/channels"
+	"github.com/developerluch/phantomcrm/apps/api/internal/repo"
 )
 
 // telnyxReplayWindow is the maximum age a Telnyx-signed webhook payload may

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 func TestAIToolMetadataClassifiesReadOnlyAndMutationTools(t *testing.T) {

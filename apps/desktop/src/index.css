@@ -1,0 +1,526 @@
+@import "@xyflow/react/dist/style.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 82 80% 40%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 221 83% 53%;
+    --radius: 0.75rem;
+    --chart-1: 221 83% 53%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+    --accent-hex: #5a8a20;
+    --brand-accent: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 100%);
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 221 83% 63%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 0 0% 12%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14%;
+    --input: 0 0% 12%;
+    --ring: 221 83% 63%;
+    --radius: 0.75rem;
+    --chart-1: 221 83% 63%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --accent-hex: #7DD3FC;
+    --sidebar-background: 0 0% 3.9%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 8%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 10%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Subtle grid background */
+.bg-grid {
+  background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.dark .bg-grid {
+  background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--muted)); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.3); }
+
+/* Scoped custom scrollbar — thinner, neutral */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground) / 0.2); border-radius: 99px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); }
+
+/* Gradient text utility */
+.gradient-text {
+  background: linear-gradient(135deg, #3b82f6, #a855f7, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effects */
+.glow-blue  { box-shadow: 0 0 20px rgba(59,130,246,0.35); }
+.glow-purple { box-shadow: 0 0 20px rgba(168,85,247,0.35); }
+.glow-green { box-shadow: 0 0 20px rgba(34,197,94,0.35); }
+.glow-red   { box-shadow: 0 0 20px rgba(239,68,68,0.35); }
+
+/* AI mode window glow */
+@keyframes ai-glow-pulse {
+  0%, 100% {
+    box-shadow: inset 0 0 60px rgba(59,130,246,0.06),
+                inset 0 0 120px rgba(139,92,246,0.04),
+                0 0 40px rgba(59,130,246,0.05);
+  }
+  50% {
+    box-shadow: inset 0 0 80px rgba(59,130,246,0.1),
+                inset 0 0 160px rgba(139,92,246,0.06),
+                0 0 60px rgba(59,130,246,0.08);
+  }
+}
+.ai-glow-active {
+  animation: ai-glow-pulse 3s ease-in-out infinite;
+}
+
+/* Glassmorphism card */
+.glass {
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+:root:not(.dark) .glass {
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+/* Glassmorphic AI response card — frosted glass with inner glow */
+.glass-response {
+  background: rgba(255,255,255,0.02);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.05);
+  will-change: transform;
+}
+:root:not(.dark) .glass-response {
+  background: rgba(255,255,255,0.65);
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.4);
+}
+
+/* Key data glow for streaming numbers/percentages */
+.key-data-glow {
+  color: #7dd3fc;
+  text-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
+  transition: color 0.4s ease, text-shadow 0.4s ease;
+}
+
+/* Aura breathing for AI thinking state */
+@keyframes aura-breathe {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.15); }
+}
+
+/* Waveform bars animation (moved from inline style) */
+@keyframes waveform {
+  0% { transform: scaleY(0.3); }
+  100% { transform: scaleY(1); }
+}
+
+/* Shimmer loading lines for AI responses */
+.shimmer-line {
+  background-image: linear-gradient(90deg, transparent 0%, rgba(125, 211, 252, 0.06) 50%, transparent 100%);
+  background-size: 200% 100%;
+}
+
+/* Energy flow edge animation for org chart */
+@keyframes energy-flow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -16; }
+}
+
+/* ── n8n-style ReactFlow handles ─────────────────────────── */
+
+/* Big, obvious connector handles */
+.react-flow__handle {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: #3b82f6 !important;
+  border: 3px solid #1e40af !important;
+  transition: all 0.15s ease !important;
+  z-index: 10 !important;
+  cursor: crosshair !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3) !important;
+}
+
+.react-flow__handle:hover {
+  width: 26px !important;
+  height: 26px !important;
+  background: #60a5fa !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.7) !important;
+}
+
+.react-flow__handle-top {
+  top: -10px !important;
+}
+
+.react-flow__handle-bottom {
+  bottom: -10px !important;
+}
+
+.react-flow__handle:hover.react-flow__handle-top {
+  top: -13px !important;
+}
+
+.react-flow__handle:hover.react-flow__handle-bottom {
+  bottom: -13px !important;
+}
+
+/* When actively connecting, glow the valid targets */
+.react-flow__handle.connectingto,
+.react-flow__handle.valid {
+  background: #22c55e !important;
+  border-color: #15803d !important;
+  box-shadow: 0 0 24px rgba(34, 197, 94, 0.8) !important;
+  width: 26px !important;
+  height: 26px !important;
+}
+
+/* Connection line while dragging */
+.react-flow__connection-path {
+  stroke: #60a5fa !important;
+  stroke-width: 4 !important;
+  stroke-dasharray: 10 5 !important;
+  animation: connection-dash 0.4s linear infinite !important;
+}
+
+@keyframes connection-dash {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -15; }
+}
+
+/* Edge interaction zone — wider invisible area for easier selection */
+.react-flow__edge-interaction {
+  stroke-width: 30px !important;
+}
+
+/* ── Node sizing & hover ─────────────────────────────── */
+
+/* Ensure ReactFlow node wrappers respect the inner card size */
+.react-flow__node {
+  /* Override the default ReactFlow node min-width of 150px */
+  min-width: auto !important;
+}
+
+/* Node card hover glow */
+.org-node:hover {
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.12),
+              0 0 60px rgba(59, 130, 246, 0.04);
+}
+
+/* Smooth drag feel */
+.react-flow__node.dragging .org-node {
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.2),
+              0 8px 32px rgba(0, 0, 0, 0.5);
+  transform: scale(1.02);
+}
+
+/* Selection ring */
+.react-flow__node.selected .org-node {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5),
+              0 0 30px rgba(59, 130, 246, 0.15);
+}
+
+/* ── Universal Click Feedback ──────────────────────────────────────────── */
+
+/* Smooth return to normal on release */
+button:not(:disabled),
+a,
+[role="button"],
+[role="menuitem"],
+[role="option"],
+input[type="checkbox"],
+summary {
+  transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Subtle scale-down on press */
+button:not(:disabled):active,
+a:active,
+[role="button"]:active,
+[role="menuitem"]:active,
+[role="option"]:active,
+input[type="checkbox"]:active,
+summary:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+
+/* Click ripple highlight — brief white inset flash on tap */
+@keyframes click-flash {
+  0%   { box-shadow: inset 0 0 0 0 rgba(255, 255, 255, 0.12); }
+  50%  { box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.06); }
+  100% { box-shadow: inset 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+button:not(:disabled):active,
+[role="button"]:active,
+[role="menuitem"]:active {
+  animation: click-flash 0.3s ease-out;
+}
+
+/* Sidebar nav, conversation items, stage cards — anything with cursor-pointer */
+.cursor-pointer:active,
+[data-clickable]:active {
+  transform: scale(0.98);
+}
+
+/* ── React Grid Layout: Recruit Dashboard ────────────────────── */
+
+.react-grid-item.react-grid-placeholder {
+  background: rgba(125, 211, 252, 0.08) !important;
+  border: 2px dashed #7dd3fc !important;
+  border-radius: 16px !important;
+  opacity: 1 !important;
+  backdrop-filter: blur(4px);
+}
+
+.react-grid-item {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.react-grid-item.react-draggable-dragging {
+  z-index: 50 !important;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(125, 211, 252, 0.25) !important;
+  border-radius: 12px;
+  opacity: 0.95;
+  margin: 0 !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+.react-draggable-dragging,
+.react-draggable-dragging * {
+  cursor: grabbing !important;
+}
+.drag-handle img,
+.drag-handle svg {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.react-grid-item.react-grid-placeholder {
+  z-index: 1 !important;
+}
+
+/* ── Custom universal resize grip (single SE corner, both axes) ─── */
+
+/* Hidden by default — only visible inside edit mode */
+.phantom-resize-handle {
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+.editing-grid .phantom-resize-handle {
+  opacity: 0.4;
+  pointer-events: auto;
+}
+.editing-grid .phantom-resize-handle:hover {
+  opacity: 0.8;
+}
+
+/* Collapsed widgets: suppress resize handle (locked at h=1) */
+.editing-grid .react-grid-item:has(.widget-collapsed) .phantom-resize-handle {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Defensively hide any stray react-resizable default stubs in non-SE positions
+   (harmless if absent — only fires if the library ever injects them) */
+.react-resizable-handle:not(.react-resizable-handle-se) {
+  display: none !important;
+}
+
+/* ── Apple-style jiggle animation for edit mode ────────────────── */
+
+@keyframes widget-jiggle {
+  0%, 100% { transform: rotate(-0.5deg); }
+  25% { transform: rotate(0.5deg); }
+  50% { transform: rotate(-0.3deg); }
+  75% { transform: rotate(0.3deg); }
+}
+
+.editing-grid .react-grid-item:not(.react-draggable-dragging) > * {
+  animation: widget-jiggle 0.4s ease-in-out infinite;
+}
+.editing-grid .react-grid-item:nth-child(even):not(.react-draggable-dragging) > * {
+  animation-delay: 0.15s;
+}
+
+/* ── Light Mode Overrides ─────────────────────────────────── */
+
+/* Glassmorphic cards: white/80 with subtle shadow instead of transparent dark */
+:root:not(.dark) .bg-card\/50 {
+  --tw-bg-opacity: 0.8;
+  background-color: rgb(255 255 255 / var(--tw-bg-opacity));
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+}
+
+/* Borders more visible in light mode */
+:root:not(.dark) .border-border\/50 {
+  border-color: hsl(var(--border) / 0.8);
+}
+:root:not(.dark) .border-border\/30 {
+  border-color: hsl(var(--border) / 0.6);
+}
+
+/* White overlays (sidebar hover states etc) become dark overlays in light mode */
+:root:not(.dark) .bg-white\/\[0\.03\] {
+  background-color: rgb(0 0 0 / 0.02);
+}
+:root:not(.dark) .bg-white\/\[0\.04\] {
+  background-color: rgb(0 0 0 / 0.03);
+}
+:root:not(.dark) .bg-white\/\[0\.06\] {
+  background-color: rgb(0 0 0 / 0.05);
+}
+:root:not(.dark) .bg-white\/10 {
+  background-color: rgb(0 0 0 / 0.06);
+}
+
+/* White border overlays → subtle dark borders in light mode */
+:root:not(.dark) .border-white\/10 {
+  border-color: rgb(0 0 0 / 0.08);
+}
+:root:not(.dark) .border-white\/\[0\.06\] {
+  border-color: rgb(0 0 0 / 0.06);
+}
+
+/* Grid background adapts for light mode */
+:root:not(.dark) .bg-grid {
+  background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+}
+
+/* Sidebar gradient: light version */
+:root:not(.dark) aside[style*="linear-gradient"] {
+  background: linear-gradient(to bottom, hsl(210 20% 96%) 0%, hsl(var(--background)) 120px) !important;
+}
+
+/* Calendar event blocks: slightly more opaque in light mode */
+:root:not(.dark) .backdrop-blur-sm {
+  --tw-backdrop-blur: blur(4px);
+}
+
+/* Grid placeholder: darker lime border in light mode */
+:root:not(.dark) .react-grid-item.react-grid-placeholder {
+  border-color: rgba(90, 138, 32, 0.5) !important;
+}
+
+/* Key data glow: no glow in light mode, just darker lime */
+:root:not(.dark) .key-data-glow {
+  color: #3d7a10;
+  text-shadow: none;
+}
+
+/* Higher white opacity overlays → dark overlays in light mode */
+:root:not(.dark) .bg-white\/20 {
+  background-color: rgb(0 0 0 / 0.08);
+}
+:root:not(.dark) .hover\:bg-white\/20:hover {
+  background-color: rgb(0 0 0 / 0.08);
+}
+:root:not(.dark) .hover\:bg-white\/30:hover {
+  background-color: rgb(0 0 0 / 0.1);
+}
+:root:not(.dark) .hover\:bg-white\/\[0\.02\]:hover {
+  background-color: rgb(0 0 0 / 0.02);
+}
+:root:not(.dark) .hover\:bg-white\/\[0\.03\]:hover {
+  background-color: rgb(0 0 0 / 0.03);
+}
+:root:not(.dark) .hover\:bg-white\/\[0\.04\]:hover {
+  background-color: rgb(0 0 0 / 0.04);
+}
+:root:not(.dark) .hover\:bg-white\/\[0\.06\]:hover {
+  background-color: rgb(0 0 0 / 0.05);
+}
+
+/* Shadow softening for light mode */
+:root:not(.dark) .shadow-black\/20 {
+  --tw-shadow-color: rgb(0 0 0 / 0.08);
+}
+
+/* Scrollbar styling for light mode */
+:root:not(.dark) ::-webkit-scrollbar-track {
+  background: hsl(210 20% 96%);
+}
+:root:not(.dark) ::-webkit-scrollbar-thumb {
+  background: hsl(215 16% 80%);
+}
+:root:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: hsl(215 16% 70%);
+}

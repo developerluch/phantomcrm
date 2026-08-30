@@ -11,18 +11,18 @@ import (
 // ── Portal Structs ───────────────────────────────────────────────────────────
 
 type AgentProfile struct {
-	ID          string     `json:"id"`
-	AgentID     string     `json:"agentId"`
-	Bio         *string    `json:"bio"`
-	City        *string    `json:"city"`
-	Timezone    *string    `json:"timezone"`
-	LinkedinURL *string    `json:"linkedinUrl"`
-	PhotoURL    *string    `json:"photoUrl"`
-	StartDate   *string    `json:"startDate"`
-	CompTierID  *string    `json:"compTierId"`
-	ManagerID   *string    `json:"managerId"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   time.Time  `json:"updatedAt"`
+	ID          string    `json:"id"`
+	AgentID     string    `json:"agentId"`
+	Bio         *string   `json:"bio"`
+	City        *string   `json:"city"`
+	Timezone    *string   `json:"timezone"`
+	LinkedinURL *string   `json:"linkedinUrl"`
+	PhotoURL    *string   `json:"photoUrl"`
+	StartDate   *string   `json:"startDate"`
+	CompTierID  *string   `json:"compTierId"`
+	ManagerID   *string   `json:"managerId"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type CompTier struct {

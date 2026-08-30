@@ -16,20 +16,20 @@ import (
 // last_inbound_at; outbound sends update last_outbound_at and (for WA)
 // extend whatsapp_window_expires_at.
 type Conversation struct {
-	ID                       string     `json:"id"`
-	ContactID                string     `json:"contactId"`
-	Channel                  string     `json:"channel"`
-	Provider                 string     `json:"provider"`
-	ExternalThreadID         *string    `json:"externalThreadId,omitempty"`
-	Status                   string     `json:"status"`
-	AssignedAgentID          *string    `json:"assignedAgentId,omitempty"`
-	LastInboundAt            *time.Time `json:"lastInboundAt,omitempty"`
-	LastOutboundAt           *time.Time `json:"lastOutboundAt,omitempty"`
-	UnreadCount              int        `json:"unreadCount"`
-	WhatsAppWindowExpiresAt  *time.Time `json:"whatsappWindowExpiresAt,omitempty"`
-	SnoozeUntil              *time.Time `json:"snoozeUntil,omitempty"`
-	CreatedAt                time.Time  `json:"createdAt"`
-	UpdatedAt                time.Time  `json:"updatedAt"`
+	ID                      string     `json:"id"`
+	ContactID               string     `json:"contactId"`
+	Channel                 string     `json:"channel"`
+	Provider                string     `json:"provider"`
+	ExternalThreadID        *string    `json:"externalThreadId,omitempty"`
+	Status                  string     `json:"status"`
+	AssignedAgentID         *string    `json:"assignedAgentId,omitempty"`
+	LastInboundAt           *time.Time `json:"lastInboundAt,omitempty"`
+	LastOutboundAt          *time.Time `json:"lastOutboundAt,omitempty"`
+	UnreadCount             int        `json:"unreadCount"`
+	WhatsAppWindowExpiresAt *time.Time `json:"whatsappWindowExpiresAt,omitempty"`
+	SnoozeUntil             *time.Time `json:"snoozeUntil,omitempty"`
+	CreatedAt               time.Time  `json:"createdAt"`
+	UpdatedAt               time.Time  `json:"updatedAt"`
 }
 
 // ConversationRepo handles CRUD for conversations.

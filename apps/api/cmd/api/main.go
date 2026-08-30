@@ -10,12 +10,12 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	"phantomcrm-api/internal/api"
-	"phantomcrm-api/internal/api/websocket"
-	"phantomcrm-api/internal/config"
-	"phantomcrm-api/internal/db"
-	"phantomcrm-api/internal/discord"
-	"phantomcrm-api/internal/wavv"
+	"github.com/developerluch/phantomcrm/apps/api/internal/api"
+	"github.com/developerluch/phantomcrm/apps/api/internal/api/websocket"
+	"github.com/developerluch/phantomcrm/apps/api/internal/config"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/discord"
+	"github.com/developerluch/phantomcrm/apps/api/internal/wavv"
 )
 
 func main() {

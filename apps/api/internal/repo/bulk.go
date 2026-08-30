@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"phantomcrm-api/internal/filters"
+	"github.com/developerluch/phantomcrm/apps/api/internal/filters"
 )
 
 // MaxBulkAffected is the hard cap on rows a single bulk op may touch. The

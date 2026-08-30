@@ -14,11 +14,11 @@ const baseURL = "https://services.leadconnectorhq.com"
 
 // Client is the GoHighLevel API client. Returns nil from NewClient if not configured.
 type Client struct {
-	apiKey     string
-	locationID string
-	pipelineID string
-	httpClient *http.Client
-	stageMap   map[int]string // bot stage -> GHL stage ID
+	apiKey       string
+	locationID   string
+	pipelineID   string
+	httpClient   *http.Client
+	stageMap     map[int]string // bot stage -> GHL stage ID
 	customFields struct {
 		DiscordID string
 		Agency    string

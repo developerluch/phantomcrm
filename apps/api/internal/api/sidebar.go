@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 func (s *Server) handleAgentSidebar(w http.ResponseWriter, r *http.Request) {

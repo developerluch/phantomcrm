@@ -1,0 +1,33 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+
+release/
+*.exe
+*.dmg
+*.blockmap
+electron/native/bin/
+.claude-prompts-archive/
+
+# Build artifacts
+vite.config.ts.timestamp-*.mjs
+
+# LibreOffice / Emacs lock files
+.~lock.*
+*.xlsx#
+
+# PHI / client data — never commit to the repo. Real policy data lives in ~/synvelo-local-data/.
+MOO_POLICIES_DATA.json
+*.xlsx
+*.csv
+# Synthetic test fixture (no PHI) used by the import dialog.
+!public/sample-policies.csv
+/synvelo-local-data/
+/data/
+# Migration scripts that pull in real client records — keep them out of the repo.
+# If you need to write a one-off script that touches real clients, put it here:
+scripts/real-data-migrations/

@@ -6,20 +6,20 @@ import (
 	"errors"
 	"fmt"
 
-	"phantomcrm-api/internal/filters"
+	"github.com/developerluch/phantomcrm/apps/api/internal/filters"
 )
 
 // Filter JSON shape accepted by every CRM endpoint that takes a filter:
 //
-//   Group: {"combinator": "and"|"or", "children": [<Group|Rule>, ...]}
-//   Rule:  {"field": "<name>", "op": "<op>", "value": <any>}
+//	Group: {"combinator": "and"|"or", "children": [<Group|Rule>, ...]}
+//	Rule:  {"field": "<name>", "op": "<op>", "value": <any>}
 //
 // Detection: presence of "field" ⇒ Rule; otherwise ⇒ Group. Unknown top-
 // level keys are rejected with ErrUnknownFilterKey.
 const (
-	maxFilterDepth      = 6
-	maxFilterWidth      = 50
-	maxSmartListFilter  = 32 * 1024 // 32 KiB persisted filter cap
+	maxFilterDepth     = 6
+	maxFilterWidth     = 50
+	maxSmartListFilter = 32 * 1024 // 32 KiB persisted filter cap
 )
 
 var (

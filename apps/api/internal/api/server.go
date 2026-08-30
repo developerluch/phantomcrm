@@ -2,20 +2,19 @@ package api
 
 import (
 	"context"
-	"crypto/subtle"
 	"log"
 	"net/http"
 	"time"
 
 	gorillaws "github.com/gorilla/websocket"
 
-	"phantomcrm-api/internal/api/websocket"
-	"phantomcrm-api/internal/channels"
-	"phantomcrm-api/internal/config"
-	"phantomcrm-api/internal/db"
-	"phantomcrm-api/internal/events"
-	"phantomcrm-api/internal/repo"
-	"phantomcrm-api/internal/sms"
+	"github.com/developerluch/phantomcrm/apps/api/internal/api/websocket"
+	"github.com/developerluch/phantomcrm/apps/api/internal/channels"
+	"github.com/developerluch/phantomcrm/apps/api/internal/config"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/events"
+	"github.com/developerluch/phantomcrm/apps/api/internal/repo"
+	"github.com/developerluch/phantomcrm/apps/api/internal/sms"
 )
 
 // Server is the standalone REST API server.
@@ -27,6 +26,7 @@ type Server struct {
 	telnyxClient *sms.TelnyxClient
 	mux          *http.ServeMux
 	srv          *http.Server
+	wsTickets    *wsTicketStore
 
 	// CRM M1 repos. Constructed once in NewServer and shared across requests.
 	contactRepo   *repo.ContactRepo
@@ -48,6 +48,7 @@ type Server struct {
 // NewServer creates a new API server (no Discord session needed).
 func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server {
 	s := &Server{cfg: cfg, db: database, hub: hub}
+	s.wsTickets = newWSTicketStore()
 	s.contactRepo = repo.NewContactRepo(database.Pool())
 	s.tagRepo = repo.NewTagRepo(database.Pool())
 	s.smartListRepo = repo.NewSmartListRepo(database.Pool())
@@ -122,7 +123,7 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 	// Google OAuth callback (unauthenticated — Google redirects here without a JWT)
 	mux.HandleFunc("GET /api/v1/integrations/google/callback", s.handleGoogleCallback)
 
-	// WebSocket endpoint (token via query param)
+	// WebSocket endpoint. Authentication uses a short-lived single-use ticket.
 	mux.HandleFunc("GET /api/v1/ws", s.handleWebSocket)
 
 	// Authenticated routes
@@ -131,6 +132,8 @@ func NewServer(cfg *config.Config, database *db.DB, hub *websocket.Hub) *Server 
 	// Auth: current user (authenticated)
 	mux.HandleFunc("GET /api/v1/auth/me", auth(s.handleMe))
 	mux.HandleFunc("PATCH /api/v1/auth/me", auth(s.handleUpdateMe))
+	mux.HandleFunc("POST /api/v1/ws/ticket", auth(s.handleCreateWSTicket))
+	mux.HandleFunc("POST /api/v1/voice/tts", auth(s.handleVoiceTTS))
 	mux.HandleFunc("GET /api/v1/auth/me/verification-status", auth(s.handleVerificationStatus))
 	mux.HandleFunc("POST /api/v1/auth/me/verify-npn", auth(s.handleVerifyNpn))
 
@@ -548,24 +551,11 @@ func (s *Server) AuthMiddleware() func(http.HandlerFunc) http.HandlerFunc {
 
 // handleWebSocket upgrades the HTTP connection to a WebSocket.
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query().Get("token")
-	if token == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	if r.URL.Query().Get("token") != "" {
+		http.Error(w, "bearer tokens in URLs are not supported", http.StatusUnauthorized)
 		return
 	}
-
-	// Check legacy API token first
-	authorized := s.cfg.APIToken != "" && subtle.ConstantTimeCompare([]byte(token), []byte(s.cfg.APIToken)) == 1
-
-	// Then try JWT validation
-	if !authorized && s.cfg.JWTSecret != "" {
-		user, err := ValidateAccessToken(s.cfg.JWTSecret, token)
-		if err == nil && user != nil {
-			authorized = true
-		}
-	}
-
-	if !authorized {
+	if _, ok := s.wsTickets.Redeem(r.URL.Query().Get("ticket")); !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -609,5 +599,5 @@ func (s *Server) Start(ctx context.Context) {
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"status":"ok","service":"vipa-backend"}`))
+	w.Write([]byte(`{"status":"ok","service":"phantomcrm-api"}`))
 }

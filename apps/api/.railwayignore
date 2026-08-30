@@ -3,3 +3,5 @@
 .env.*
 vipa-bot
 vipa-api
+api
+phantomcrm-api

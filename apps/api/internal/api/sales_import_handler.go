@@ -13,7 +13,7 @@ import (
 
 	"github.com/ledongthuc/pdf"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 type parseSalesCSVRowsRequest struct {

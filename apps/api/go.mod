@@ -1,4 +1,4 @@
-module phantomcrm-api
+module github.com/developerluch/phantomcrm/apps/api
 
 go 1.24.1
 

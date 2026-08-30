@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"phantomcrm-api/internal/filters"
+	"github.com/developerluch/phantomcrm/apps/api/internal/filters"
 )
 
 // BuildWhere produces the complete WHERE fragment, bound args (in $1..$N

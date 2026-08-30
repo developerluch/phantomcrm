@@ -70,8 +70,8 @@ var exemptPaths = []string{
 	"/api/v1/auth/",
 	"/api/v1/health",
 	"/api/v1/ws",
-	"/api/v1/recruits/apply",                  // public website form
-	"/api/v1/integrations/google/callback",     // Google OAuth redirect (no JWT)
+	"/api/v1/recruits/apply",               // public website form
+	"/api/v1/integrations/google/callback", // Google OAuth redirect (no JWT)
 }
 
 func isExempt(path string) bool {

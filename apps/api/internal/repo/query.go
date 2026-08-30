@@ -1,6 +1,6 @@
 package repo
 
-import "phantomcrm-api/internal/filters"
+import "github.com/developerluch/phantomcrm/apps/api/internal/filters"
 
 // ActorScope captures the identity + privilege of the caller. Populated by
 // handlers from auth context; consumed by Repository[T] to enforce row-level

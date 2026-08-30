@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	"phantomcrm-api/internal/api/websocket"
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/api/websocket"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 // ── Lock-In CRUD ────────────────────────────────────────────────────────────

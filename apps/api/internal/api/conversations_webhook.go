@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"phantomcrm-api/internal/api/websocket"
-	"phantomcrm-api/internal/channels"
-	"phantomcrm-api/internal/db"
-	"phantomcrm-api/internal/events"
-	"phantomcrm-api/internal/repo"
+	"github.com/developerluch/phantomcrm/apps/api/internal/api/websocket"
+	"github.com/developerluch/phantomcrm/apps/api/internal/channels"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/events"
+	"github.com/developerluch/phantomcrm/apps/api/internal/repo"
 )
 
 // inboundMessage carries everything the unified write needs from a Twilio

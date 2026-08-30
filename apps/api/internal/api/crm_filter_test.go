@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"phantomcrm-api/internal/filters"
+	"github.com/developerluch/phantomcrm/apps/api/internal/filters"
 )
 
 func TestFilterJSONGuard_EmptyAllowed(t *testing.T) {

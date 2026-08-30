@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 // handleAgentReport returns a summary report of all agents.

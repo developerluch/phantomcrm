@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"phantomcrm-api/internal/filters"
+	"github.com/developerluch/phantomcrm/apps/api/internal/filters"
 )
 
 // Filter used across bulk tests — any valid filter will do; the tests below

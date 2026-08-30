@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 type createBugReportRequest struct {

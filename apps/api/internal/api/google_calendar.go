@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 // ──────────────────────────────────────────────────────────────
@@ -27,19 +27,19 @@ type googleEventsResponse struct {
 }
 
 type googleEventItem struct {
-	Id               string                 `json:"id"`
-	Summary          string                 `json:"summary"`
-	Description      string                 `json:"description"`
-	Location         string                 `json:"location"`
-	Status           string                 `json:"status"`
-	HtmlLink         string                 `json:"htmlLink"`
-	ColorId          string                 `json:"colorId"`
-	RecurringEventId string                 `json:"recurringEventId"`
-	HangoutLink      string                 `json:"hangoutLink"`
-	Start            *googleEventDateTime   `json:"start"`
-	End              *googleEventDateTime   `json:"end"`
-	Attendees        []googleEventAttendee  `json:"attendees"`
-	ConferenceData   *googleConferenceData  `json:"conferenceData"`
+	Id               string                `json:"id"`
+	Summary          string                `json:"summary"`
+	Description      string                `json:"description"`
+	Location         string                `json:"location"`
+	Status           string                `json:"status"`
+	HtmlLink         string                `json:"htmlLink"`
+	ColorId          string                `json:"colorId"`
+	RecurringEventId string                `json:"recurringEventId"`
+	HangoutLink      string                `json:"hangoutLink"`
+	Start            *googleEventDateTime  `json:"start"`
+	End              *googleEventDateTime  `json:"end"`
+	Attendees        []googleEventAttendee `json:"attendees"`
+	ConferenceData   *googleConferenceData `json:"conferenceData"`
 }
 
 type googleEventDateTime struct {

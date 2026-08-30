@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/developerluch/phantomcrm/apps/api/internal/config"
 	_ "github.com/lib/pq"
-	"phantomcrm-api/internal/config"
 )
 
 // Stage constants for the onboarding pipeline.

@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 // handlePurgeStatus returns purge system status overview.

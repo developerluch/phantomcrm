@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 func (s *Server) handleListExpenses(w http.ResponseWriter, r *http.Request) {

@@ -18,13 +18,13 @@ type SidebarActivityEntry struct {
 
 // SidebarData aggregates data for an agent's sidebar view.
 type SidebarData struct {
-	AgentData      *Agent                `json:"agentData"`
-	Profile        *AgentProfile         `json:"profile"`
-	WavvGoal       int                   `json:"wavvGoal"`
-	DailySummaries int                   `json:"dailySummaries"`
-	LeaderboardRank int                  `json:"leaderboardRank"`
-	Recruits       []Agent               `json:"recruits"`
-	RecentActivity []SidebarActivityEntry `json:"recentActivity"`
+	AgentData       *Agent                 `json:"agentData"`
+	Profile         *AgentProfile          `json:"profile"`
+	WavvGoal        int                    `json:"wavvGoal"`
+	DailySummaries  int                    `json:"dailySummaries"`
+	LeaderboardRank int                    `json:"leaderboardRank"`
+	Recruits        []Agent                `json:"recruits"`
+	RecentActivity  []SidebarActivityEntry `json:"recentActivity"`
 }
 
 // GetSidebarActivity returns recent activity log entries for an agent.

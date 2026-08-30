@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"phantomcrm-api/internal/db"
-	"phantomcrm-api/internal/sms"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/sms"
 )
 
 // ParsedLead holds structured lead data extracted from free text.

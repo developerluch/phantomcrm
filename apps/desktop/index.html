@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/phantom-ghost.svg" />
+    <!--
+      Content-Security-Policy for the Electron renderer.
+      'unsafe-inline' on style-src is an accepted concession for Tailwind /
+      framer-motion inline styles (no nonce pipeline). script-src is strict
+      'self' only — Vite emits hashed external chunks.
+      connect-src enumerates: backend API (HTTP + WS), address lookup,
+      Discord OAuth, Google OAuth. img-src allows https: + data: for Discord
+      avatars and the base64 logo stored via getLogo().
+    -->
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self';
+               script-src 'self';
+               style-src 'self' 'unsafe-inline';
+               img-src 'self' data: https:;
+               font-src 'self' data:;
+               connect-src 'self'
+                 https://phantom-api-production-e27f.up.railway.app
+                 wss://phantom-api-production-e27f.up.railway.app
+                 https://nominatim.openstreetmap.org
+                 https://discord.com https://*.discord.com
+                 https://accounts.google.com;
+               frame-src 'none';
+               object-src 'none';
+               base-uri 'self';
+               form-action 'self';
+               worker-src 'self' blob:" />
+    <title>Phantom CRM</title>
+  </head>
+  <body class="bg-vipa-dark text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

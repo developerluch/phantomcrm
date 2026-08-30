@@ -23,17 +23,17 @@ type WavvSession struct {
 
 // WavvGoal represents a weekly or monthly production goal for an agent.
 type WavvGoal struct {
-	ID          int       `json:"id"`
-	DiscordID   int64     `json:"discordId"`
-	GuildID     int64     `json:"guildId"`
-	GoalType    string    `json:"goalType"` // "weekly" or "monthly"
-	Dials       int       `json:"dials"`
-	Connections int       `json:"connections"`
-	TalkMins    int       `json:"talkMins"`
-	Appointments int      `json:"appointments"`
-	Policies    int       `json:"policies"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID           int       `json:"id"`
+	DiscordID    int64     `json:"discordId"`
+	GuildID      int64     `json:"guildId"`
+	GoalType     string    `json:"goalType"` // "weekly" or "monthly"
+	Dials        int       `json:"dials"`
+	Connections  int       `json:"connections"`
+	TalkMins     int       `json:"talkMins"`
+	Appointments int       `json:"appointments"`
+	Policies     int       `json:"policies"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }
 
 // WavvDailySummary is a precomputed daily rollup for a single agent.

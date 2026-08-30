@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"phantomcrm-api/internal/repo"
+	"github.com/developerluch/phantomcrm/apps/api/internal/repo"
 )
 
 // ── List ────────────────────────────────────────────────────────────────

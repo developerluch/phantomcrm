@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"phantomcrm-api/internal/db"
-	"phantomcrm-api/internal/wavv"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/wavv"
 )
 
 // wavvSync holds the reference to the sync service, set from main.

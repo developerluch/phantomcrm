@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 func (s *Server) handleListNotifications(w http.ResponseWriter, r *http.Request) {

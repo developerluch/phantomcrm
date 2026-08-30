@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"phantomcrm-api/internal/config"
+	"github.com/developerluch/phantomcrm/apps/api/internal/config"
 )
 
 func TestOriginPolicyAllowsConfiguredAndNativeOrigins(t *testing.T) {

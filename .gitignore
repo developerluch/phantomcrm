@@ -1,0 +1,23 @@
+.DS_Store
+.build/
+.env
+.env.*
+!.env.example
+node_modules/
+target/
+*.log
+
+# Desktop build output
+apps/desktop/dist/
+apps/desktop/release/
+apps/desktop/electron/native/bin/
+
+# API build output
+apps/api/phantomcrm-api
+apps/api/api
+
+# Local data and exports
+data/
+*.csv
+*.xlsx
+!apps/desktop/public/sample-policies.csv

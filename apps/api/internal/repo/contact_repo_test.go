@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"phantomcrm-api/internal/filters"
+	"github.com/developerluch/phantomcrm/apps/api/internal/filters"
 )
 
 func TestContact_ImplementsEntity(t *testing.T) {

@@ -14,27 +14,27 @@ import (
 
 // Message is one inbound or outbound entry on a conversation. Append-only.
 type Message struct {
-	ID                  string         `json:"id"`
-	ConversationID      string         `json:"conversationId"`
-	ContactID           string         `json:"contactId"`
-	Direction           string         `json:"direction"` // inbound | outbound
-	Channel             string         `json:"channel"`
-	Provider            string         `json:"provider"`
-	ExternalMessageID   *string        `json:"externalMessageId,omitempty"`
-	FromAddr            *string        `json:"fromAddr,omitempty"`
-	ToAddr              *string        `json:"toAddr,omitempty"`
-	Body                string         `json:"body"`
-	MediaURLs           []string       `json:"mediaUrls,omitempty"`
-	TemplateID          *string        `json:"templateId,omitempty"`
-	TemplateVariables   map[string]any `json:"templateVariables,omitempty"`
-	Status              string         `json:"status"`
-	ErrorCode           *string        `json:"errorCode,omitempty"`
-	ErrorMessage        *string        `json:"errorMessage,omitempty"`
-	SentByAgentID       *string        `json:"sentByAgentId,omitempty"`
-	SentByAutomationID  *string        `json:"sentByAutomationId,omitempty"`
-	CostCents           *int           `json:"costCents,omitempty"`
-	IdempotencyKey      *string        `json:"idempotencyKey,omitempty"`
-	CreatedAt           time.Time      `json:"createdAt"`
+	ID                 string         `json:"id"`
+	ConversationID     string         `json:"conversationId"`
+	ContactID          string         `json:"contactId"`
+	Direction          string         `json:"direction"` // inbound | outbound
+	Channel            string         `json:"channel"`
+	Provider           string         `json:"provider"`
+	ExternalMessageID  *string        `json:"externalMessageId,omitempty"`
+	FromAddr           *string        `json:"fromAddr,omitempty"`
+	ToAddr             *string        `json:"toAddr,omitempty"`
+	Body               string         `json:"body"`
+	MediaURLs          []string       `json:"mediaUrls,omitempty"`
+	TemplateID         *string        `json:"templateId,omitempty"`
+	TemplateVariables  map[string]any `json:"templateVariables,omitempty"`
+	Status             string         `json:"status"`
+	ErrorCode          *string        `json:"errorCode,omitempty"`
+	ErrorMessage       *string        `json:"errorMessage,omitempty"`
+	SentByAgentID      *string        `json:"sentByAgentId,omitempty"`
+	SentByAutomationID *string        `json:"sentByAutomationId,omitempty"`
+	CostCents          *int           `json:"costCents,omitempty"`
+	IdempotencyKey     *string        `json:"idempotencyKey,omitempty"`
+	CreatedAt          time.Time      `json:"createdAt"`
 }
 
 // MessageRepo handles inserts + reads on the messages table.

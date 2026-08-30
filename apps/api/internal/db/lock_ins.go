@@ -10,20 +10,20 @@ import (
 // ── Structs ─────────────────────────────────────────────────────────────────
 
 type LockIn struct {
-	ID                string     `json:"id"`
-	Name              string     `json:"name"`
-	StartDate         string     `json:"startDate"`
-	EndDate           string     `json:"endDate"`
-	City              string     `json:"city"`
-	State             string     `json:"state"`
-	Status            string     `json:"status"`
-	CreatedByOrgID    int64      `json:"createdByOrgId"`
-	BudgetTarget      float64    `json:"budgetTarget"`
-	SalesGoal         float64    `json:"salesGoal"`
+	ID                 string    `json:"id"`
+	Name               string    `json:"name"`
+	StartDate          string    `json:"startDate"`
+	EndDate            string    `json:"endDate"`
+	City               string    `json:"city"`
+	State              string    `json:"state"`
+	Status             string    `json:"status"`
+	CreatedByOrgID     int64     `json:"createdByOrgId"`
+	BudgetTarget       float64   `json:"budgetTarget"`
+	SalesGoal          float64   `json:"salesGoal"`
 	EstimatedHeadcount int       `json:"estimatedHeadcount"`
-	Description       string     `json:"description"`
-	CreatedAt         time.Time  `json:"createdAt"`
-	UpdatedAt         time.Time  `json:"updatedAt"`
+	Description        string    `json:"description"`
+	CreatedAt          time.Time `json:"createdAt"`
+	UpdatedAt          time.Time `json:"updatedAt"`
 	// Joined fields
 	Partners    []LockInPartner `json:"partners,omitempty"`
 	AgentCount  int             `json:"agentCount,omitempty"`
@@ -43,20 +43,20 @@ type LockInPartner struct {
 }
 
 type LockInAgent struct {
-	ID               string     `json:"id"`
-	LockInID         string     `json:"lockInId"`
-	AgentDiscordID   int64      `json:"agentDiscordId"`
-	OrgID            int64      `json:"orgId"`
-	AgentName        string     `json:"agentName"`
-	FlightAirline    string     `json:"flightAirline"`
-	FlightNumber     string     `json:"flightNumber"`
-	ArrivalTime      *time.Time `json:"arrivalTime,omitempty"`
-	DepartureTime    *time.Time `json:"departureTime,omitempty"`
-	LodgingAssignment string   `json:"lodgingAssignment"`
-	DietaryPrefs     string     `json:"dietaryPrefs"`
-	RoommatePref     string     `json:"roommatePref"`
-	Status           string     `json:"status"`
-	CreatedAt        time.Time  `json:"createdAt"`
+	ID                string     `json:"id"`
+	LockInID          string     `json:"lockInId"`
+	AgentDiscordID    int64      `json:"agentDiscordId"`
+	OrgID             int64      `json:"orgId"`
+	AgentName         string     `json:"agentName"`
+	FlightAirline     string     `json:"flightAirline"`
+	FlightNumber      string     `json:"flightNumber"`
+	ArrivalTime       *time.Time `json:"arrivalTime,omitempty"`
+	DepartureTime     *time.Time `json:"departureTime,omitempty"`
+	LodgingAssignment string     `json:"lodgingAssignment"`
+	DietaryPrefs      string     `json:"dietaryPrefs"`
+	RoommatePref      string     `json:"roommatePref"`
+	Status            string     `json:"status"`
+	CreatedAt         time.Time  `json:"createdAt"`
 }
 
 type LockInBudgetItem struct {
@@ -94,10 +94,10 @@ type LockInChatMessage struct {
 }
 
 type BudgetSummary struct {
-	Total       float64            `json:"total"`
-	ByCategory  map[string]float64 `json:"byCategory"`
-	PerOrgSplit map[string]float64 `json:"perOrgSplit"`
-	PerAgentCost float64           `json:"perAgentCost"`
+	Total        float64            `json:"total"`
+	ByCategory   map[string]float64 `json:"byCategory"`
+	PerOrgSplit  map[string]float64 `json:"perOrgSplit"`
+	PerAgentCost float64            `json:"perAgentCost"`
 }
 
 // ── Lock-In CRUD ────────────────────────────────────────────────────────────

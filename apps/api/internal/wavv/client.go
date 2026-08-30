@@ -24,8 +24,8 @@ type Client struct {
 // NewClient creates a WAVV API client with a pre-authenticated JWT.
 func NewClient(jwt string, expiresAt time.Time) *Client {
 	return &Client{
-		http: &http.Client{Timeout: 30 * time.Second},
-		jwt:  jwt,
+		http:    &http.Client{Timeout: 30 * time.Second},
+		jwt:     jwt,
 		expires: expiresAt,
 	}
 }
@@ -88,17 +88,17 @@ type AuthResponse struct {
 
 // User is the WAVV user object from auth response.
 type User struct {
-	ID            string `json:"id"`
-	VendorID      string `json:"vendorId"`
-	VendorUserID  string `json:"vendorUserId"`
-	TeamID        string `json:"teamId"`
-	GroupID       string `json:"groupId"`
-	SubgroupID    string `json:"subgroupId"`
-	FirstName     string `json:"firstName"`
-	LastName      string `json:"lastName"`
-	Email         string `json:"email"`
-	NewUser       bool   `json:"newUser"`
-	CRMName       string `json:"crmName"`
+	ID           string `json:"id"`
+	VendorID     string `json:"vendorId"`
+	VendorUserID string `json:"vendorUserId"`
+	TeamID       string `json:"teamId"`
+	GroupID      string `json:"groupId"`
+	SubgroupID   string `json:"subgroupId"`
+	FirstName    string `json:"firstName"`
+	LastName     string `json:"lastName"`
+	Email        string `json:"email"`
+	NewUser      bool   `json:"newUser"`
+	CRMName      string `json:"crmName"`
 }
 
 // TeamStats is the response from /api/v1/stats/team.
@@ -110,26 +110,26 @@ type TeamStats struct {
 
 // DayStat holds a single day's stats for one team member.
 type DayStat struct {
-	Calls         int                `json:"calls"`
-	TalkTime      int                `json:"talktime"`      // seconds
-	Conversations int                `json:"conversations"`
-	ConvoGoalLen  int                `json:"convoGoalLength"` // seconds
-	Dispositions  map[string]int     `json:"dispositions"`
-	Outcomes      map[string]int     `json:"outcomes"`
-	InboundCalls  int                `json:"inboundCalls"`
-	InboundTalk   int                `json:"inboundTalktime"` // seconds
-	InboundConvos int                `json:"inboundConversations"`
+	Calls         int            `json:"calls"`
+	TalkTime      int            `json:"talktime"` // seconds
+	Conversations int            `json:"conversations"`
+	ConvoGoalLen  int            `json:"convoGoalLength"` // seconds
+	Dispositions  map[string]int `json:"dispositions"`
+	Outcomes      map[string]int `json:"outcomes"`
+	InboundCalls  int            `json:"inboundCalls"`
+	InboundTalk   int            `json:"inboundTalktime"` // seconds
+	InboundConvos int            `json:"inboundConversations"`
 }
 
 // TeamMember is from /api/v1/stats/team-members.
 type TeamMember struct {
-	UserID       string `json:"userId"`
-	TeamMemberID string `json:"teamMemberId"`
-	Name         string `json:"name"`
-	Calls        int    `json:"calls"`
-	Conversations int   `json:"conversations"`
-	ContactsCalled int  `json:"contactsCalled"`
-	TalkTime     int    `json:"talktime"`
+	UserID         string `json:"userId"`
+	TeamMemberID   string `json:"teamMemberId"`
+	Name           string `json:"name"`
+	Calls          int    `json:"calls"`
+	Conversations  int    `json:"conversations"`
+	ContactsCalled int    `json:"contactsCalled"`
+	TalkTime       int    `json:"talktime"`
 }
 
 // TeamMembersResponse is the response from /api/v1/stats/team-members.

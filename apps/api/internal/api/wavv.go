@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 // handleWavvOverview returns high-level WAVV production stats.

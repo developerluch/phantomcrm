@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 func (s *Server) handleListSales(w http.ResponseWriter, r *http.Request) {

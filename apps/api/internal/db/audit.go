@@ -10,15 +10,15 @@ import (
 
 // AuditEntry represents a row from the audit_log table.
 type AuditEntry struct {
-	ID           int              `json:"id"`
-	OrgID        string           `json:"orgId"`
-	UserID       string           `json:"userId"`
-	Action       string           `json:"action"`
-	ResourceType string           `json:"resourceType"`
-	ResourceID   string           `json:"resourceId"`
-	Details      json.RawMessage  `json:"details"`
-	IPAddress    string           `json:"ipAddress"`
-	CreatedAt    time.Time        `json:"createdAt"`
+	ID           int             `json:"id"`
+	OrgID        string          `json:"orgId"`
+	UserID       string          `json:"userId"`
+	Action       string          `json:"action"`
+	ResourceType string          `json:"resourceType"`
+	ResourceID   string          `json:"resourceId"`
+	Details      json.RawMessage `json:"details"`
+	IPAddress    string          `json:"ipAddress"`
+	CreatedAt    time.Time       `json:"createdAt"`
 }
 
 // CreateAuditEntry inserts a new audit log entry.

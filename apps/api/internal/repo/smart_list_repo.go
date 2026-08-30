@@ -12,7 +12,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/oklog/ulid/v2"
 
-	"phantomcrm-api/internal/filters"
+	"github.com/developerluch/phantomcrm/apps/api/internal/filters"
 )
 
 // SmartList is a persisted filter. Owner can edit/delete; agents in

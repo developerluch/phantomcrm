@@ -4,7 +4,7 @@
 // generic Repository does the rest.
 package repo
 
-import "phantomcrm-api/internal/filters"
+import "github.com/developerluch/phantomcrm/apps/api/internal/filters"
 
 // Entity describes a persistable type enough for the generic Repository to
 // build CRUD SQL and enforce visibility without handler-level boilerplate.

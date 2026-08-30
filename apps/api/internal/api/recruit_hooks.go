@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"phantomcrm-api/internal/api/websocket"
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/api/websocket"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 // onRecruitStageChange fires automation when a recruit moves to a new stage.

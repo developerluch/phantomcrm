@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"phantomcrm-api/internal/db"
-	"phantomcrm-api/internal/sms"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/sms"
 )
 
 // handleInboundRecruit receives new leads from the TFC website.

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 type aiToolMeta struct {

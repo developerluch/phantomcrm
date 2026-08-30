@@ -12,7 +12,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/oklog/ulid/v2"
 
-	"phantomcrm-api/internal/filters"
+	"github.com/developerluch/phantomcrm/apps/api/internal/filters"
 )
 
 // Contact is the supertype row as surfaced by Repository[Contact]. The shape

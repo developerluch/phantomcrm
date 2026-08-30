@@ -1,0 +1,18 @@
+<svg width="512" height="620" viewBox="0 0 512 620" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Phantom Ghost Mark</title>
+  <g id="phantom-ghost" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 36 L406 154 V284 L452 324 L414 408 V350 L384 380 V452 L337 500 V425 L304 459 V556 L256 606 L208 556 V459 L175 425 V500 L128 452 V380 L98 350 V408 L60 324 L106 284 V154 Z" stroke-width="16"/>
+    <path d="M146 338 V452" stroke-width="10"/>
+    <path d="M184 404 V540" stroke-width="10"/>
+    <path d="M218 468 V586" stroke-width="8"/>
+    <path d="M366 338 V452" stroke-width="10"/>
+    <path d="M328 404 V540" stroke-width="10"/>
+    <path d="M294 468 V586" stroke-width="8"/>
+    <circle cx="146" cy="480" r="13" stroke-width="10"/>
+    <circle cx="366" cy="480" r="13" stroke-width="10"/>
+    <path d="M158 218 L224 254 L128 238 Z" fill="#FFFFFF" stroke="none"/>
+    <path d="M354 218 L288 254 L384 238 Z" fill="#FFFFFF" stroke="none"/>
+    <path d="M246 500 V536" stroke-width="6"/>
+    <path d="M266 500 V536" stroke-width="6"/>
+  </g>
+</svg>

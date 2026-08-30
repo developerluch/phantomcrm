@@ -11,17 +11,17 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	"phantomcrm-api/internal/api/websocket"
-	"phantomcrm-api/internal/config"
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/api/websocket"
+	"github.com/developerluch/phantomcrm/apps/api/internal/config"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 // DiscordAPI provides API handlers that require a Discord session.
 type DiscordAPI struct {
-	cfg      *config.Config
-	db       *db.DB
-	hub      *websocket.Hub
-	discord  *discordgo.Session
+	cfg     *config.Config
+	db      *db.DB
+	hub     *websocket.Hub
+	discord *discordgo.Session
 }
 
 // New creates a new DiscordAPI.

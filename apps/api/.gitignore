@@ -1,5 +1,7 @@
 /vipa-bot
 /vipa-api
+/api
+/phantomcrm-api
 .env
 .env.*
 !.env.example

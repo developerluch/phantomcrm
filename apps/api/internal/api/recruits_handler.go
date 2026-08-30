@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"phantomcrm-api/internal/db"
-	"phantomcrm-api/internal/sms"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/sms"
 )
 
 func (s *Server) handleListRecruits(w http.ResponseWriter, r *http.Request) {

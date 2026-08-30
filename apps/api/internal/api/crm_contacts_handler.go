@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"phantomcrm-api/internal/filters"
-	"phantomcrm-api/internal/repo"
+	"github.com/developerluch/phantomcrm/apps/api/internal/filters"
+	"github.com/developerluch/phantomcrm/apps/api/internal/repo"
 )
 
 const (

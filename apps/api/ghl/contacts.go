@@ -10,14 +10,14 @@ import (
 
 // Contact represents a GHL contact for upsert.
 type Contact struct {
-	FirstName    string
-	LastName     string
-	Email        string
-	Phone        string
-	DiscordID    string
-	Agency       string
-	State        string
-	Tags         []string
+	FirstName string
+	LastName  string
+	Email     string
+	Phone     string
+	DiscordID string
+	Agency    string
+	State     string
+	Tags      []string
 }
 
 type upsertContactRequest struct {

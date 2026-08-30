@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"phantomcrm-api/internal/db"
+	"github.com/developerluch/phantomcrm/apps/api/internal/db"
 )
 
 // handleWavvGetGoal returns the goal for an agent.
