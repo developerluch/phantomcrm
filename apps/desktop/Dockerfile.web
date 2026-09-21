@@ -1,0 +1,29 @@
+# Hosted web build of the Phantom CRM renderer (staging preview).
+#
+# Build context is the REPO ROOT (npm workspaces). On Railway, set the service's
+# Dockerfile path to apps/desktop/Dockerfile.web and leave the root directory at /.
+#
+# VITE_* values are baked in at build time. Railway exposes service variables as
+# build args, so set VITE_API_URL on the service to point at the matching API.
+
+FROM node:22-alpine AS build
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY apps/desktop/package.json apps/desktop/package.json
+# --ignore-scripts skips the Electron binary download; the renderer build does not need it.
+RUN npm ci --ignore-scripts --no-audit --no-fund
+
+COPY apps/desktop apps/desktop
+
+ARG VITE_API_URL
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_API_URL=$VITE_API_URL \
+    VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID \
+    VITE_WEB_MODE=true
+RUN npm run build --workspace=@phantomcrm/desktop
+
+FROM caddy:2-alpine
+COPY apps/desktop/Caddyfile.web /etc/caddy/Caddyfile
+COPY --from=build /app/apps/desktop/dist /srv
+EXPOSE 8080

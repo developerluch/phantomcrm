@@ -11,11 +11,46 @@ const LS_REFRESH_KEY = 'vipa-refresh-token'
 const LS_MIGRATION_FLAG = 'vipa-ls-token-migrated-v1'
 
 const IS_DEV = import.meta.env.DEV
+// Explicit opt-in for hosted web builds (staging previews). Set at build time
+// only; a packaged Electron build never sets it, so the fail-closed guard below
+// still protects installers that somehow end up served outside Electron.
+const WEB_MODE = import.meta.env.VITE_WEB_MODE === 'true'
 const SHOULD_DEBUG_DEV_FALLBACK = import.meta.env.VITE_TOKEN_VAULT_DEBUG === 'true'
 
 // Dev-only fallback for pure `npm run dev` (no Electron preload).
 // In-memory Map only — no persistence, no storage leak. Wiped on full reload.
 const devMemoryVault = new Map<'access' | 'refresh', string>()
+
+// Web-mode fallback: sessionStorage (per tab, cleared when the tab closes),
+// with the in-memory map as a last resort when storage is blocked.
+const SS_ACCESS_KEY = 'phantom-web-access-token'
+const SS_REFRESH_KEY = 'phantom-web-refresh-token'
+
+function webGet(kind: 'access' | 'refresh'): string | null {
+  try {
+    return window.sessionStorage.getItem(kind === 'access' ? SS_ACCESS_KEY : SS_REFRESH_KEY)
+  } catch {
+    return devMemoryVault.get(kind) ?? null
+  }
+}
+
+function webSet(kind: 'access' | 'refresh', token: string): void {
+  try {
+    window.sessionStorage.setItem(kind === 'access' ? SS_ACCESS_KEY : SS_REFRESH_KEY, token)
+  } catch {
+    devMemoryVault.set(kind, token)
+  }
+}
+
+function webClear(): void {
+  try {
+    window.sessionStorage.removeItem(SS_ACCESS_KEY)
+    window.sessionStorage.removeItem(SS_REFRESH_KEY)
+  } catch {
+    // ignore
+  }
+  devMemoryVault.clear()
+}
 
 function hasElectronApi(): boolean {
   return typeof window !== 'undefined' && !!window.electronAPI
@@ -34,6 +69,7 @@ let loggedDevFallback = false
 // keeps the dev branch out of packaged builds.
 function ensureSecureStorageOrFail(): boolean {
   if (hasElectronApi()) return true
+  if (WEB_MODE) return false
   if (!IS_DEV) {
     throw new Error('tokenVault: secure storage unavailable in production build')
   }
@@ -49,7 +85,7 @@ export async function getAccessToken(): Promise<string | null> {
   if (ensureSecureStorageOrFail()) {
     return (await window.electronAPI!.getToken()) ?? null
   }
-  return devMemoryVault.get('access') ?? null
+  return WEB_MODE ? webGet('access') : (devMemoryVault.get('access') ?? null)
 }
 
 export async function setAccessToken(token: string): Promise<void> {
@@ -57,14 +93,15 @@ export async function setAccessToken(token: string): Promise<void> {
     await window.electronAPI!.setToken(token)
     return
   }
-  devMemoryVault.set('access', token)
+  if (WEB_MODE) webSet('access', token)
+  else devMemoryVault.set('access', token)
 }
 
 export async function getRefreshToken(): Promise<string | null> {
   if (ensureSecureStorageOrFail()) {
     return (await window.electronAPI!.getRefreshToken()) ?? null
   }
-  return devMemoryVault.get('refresh') ?? null
+  return WEB_MODE ? webGet('refresh') : (devMemoryVault.get('refresh') ?? null)
 }
 
 export async function setRefreshToken(token: string): Promise<void> {
@@ -72,7 +109,8 @@ export async function setRefreshToken(token: string): Promise<void> {
     await window.electronAPI!.setRefreshToken(token)
     return
   }
-  devMemoryVault.set('refresh', token)
+  if (WEB_MODE) webSet('refresh', token)
+  else devMemoryVault.set('refresh', token)
 }
 
 export async function clearTokens(): Promise<void> {
@@ -80,7 +118,8 @@ export async function clearTokens(): Promise<void> {
     await window.electronAPI!.clearToken()
     return
   }
-  devMemoryVault.clear()
+  if (WEB_MODE) webClear()
+  else devMemoryVault.clear()
 }
 
 // Idempotent one-time migration for users upgrading from pre-PR #11 builds.

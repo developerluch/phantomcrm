@@ -1,0 +1,12 @@
+.git
+node_modules
+**/node_modules
+apps/desktop/dist
+apps/desktop/release
+apps/desktop/electron/native/bin
+apps/api/phantomcrm-api
+.build
+.env
+.env.*
+!.env.example
+*.log

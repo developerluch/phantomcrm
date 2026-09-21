@@ -6,6 +6,10 @@ Build the API with `apps/api/Dockerfile` and set the service root directory to `
 
 For Railway, reconnect the service to this repository and set the root directory before removing the legacy source repository. The existing public API hostname can remain unchanged so desktop clients do not require a URL migration.
 
+## Web preview (staging)
+
+A hosted copy of the renderer can be deployed with `apps/desktop/Dockerfile.web` (build context: repo root). It is a staging preview: `VITE_WEB_MODE=true` stores tokens in `sessionStorage`, Google sign-in still expects the Electron localhost callback, and Electron-only features (secure storage, Fn-key helper, deep links, updater) are unavailable. Point `VITE_API_URL` at the staging API and add the web domain to the API's `ALLOWED_ORIGINS`.
+
 ## Desktop
 
 Desktop builds run from the root npm workspace. `npm run build` produces the renderer bundle. Platform packaging uses the scripts in `apps/desktop/package.json`; the macOS package additionally builds the native Fn-key helper.
