@@ -68,7 +68,8 @@ func main() {
 			log.Println("Discord API routes registered (bulk-import, create agent, member lookup)")
 		}
 	} else {
-		log.Println("DISCORD_TOKEN or GUILD_ID not set — bot-only API routes disabled")
+		log.Println("DISCORD_TOKEN or GUILD_ID not set — Discord features disabled; using Discord-free agent creation")
+		apiServer.RegisterNoDiscordRoutes()
 	}
 
 	apiServer.Start(ctx)

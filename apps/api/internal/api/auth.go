@@ -175,6 +175,10 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 // handleDiscordAuth exchanges a Discord OAuth2 code for JWT tokens.
 func (s *Server) handleDiscordAuth(w http.ResponseWriter, r *http.Request) {
+	if s.cfg.DiscordClientID == "" || s.cfg.DiscordClientSecret == "" {
+		jsonError(w, "Discord sign-in is not configured on this server", http.StatusServiceUnavailable)
+		return
+	}
 	var req discordAuthRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonError(w, "invalid request body", http.StatusBadRequest)
@@ -851,9 +855,20 @@ func (s *Server) fetchDiscordUser(accessToken string) (*discordUserResponse, err
 	return &user, nil
 }
 
+// DiscordConfigured reports whether the bot token and guild needed for the
+// membership check are present. When they are not, Discord features are
+// disabled rather than blocking startup.
+func (s *Server) discordConfigured() bool {
+	return s.cfg.DiscordToken != "" && s.cfg.GuildID != ""
+}
+
 // checkGuildMembership verifies that a Discord user is a member of the configured guild.
 // Uses the bot token for reliability (no user OAuth scope required).
+// When Discord is not configured the check is skipped and the user is allowed.
 func (s *Server) checkGuildMembership(discordUserID string) (bool, error) {
+	if !s.discordConfigured() {
+		return true, nil
+	}
 	url := fmt.Sprintf("https://discord.com/api/v10/guilds/%s/members/%s", s.cfg.GuildID, discordUserID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

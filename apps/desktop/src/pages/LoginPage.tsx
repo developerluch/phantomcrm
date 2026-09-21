@@ -67,6 +67,8 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const { setAuth } = useAuthStore()
   const [awaitingDiscord, setAwaitingDiscord] = useState(false)
+  // Discord sign-in is optional: hide the button when no client id is configured.
+  const discordEnabled = Boolean(getDiscordClientId())
   const [awaitingGoogle, setAwaitingGoogle] = useState(false)
   const reduce = useReducedMotion()
   // splashGone flips true the moment the splash finishes its exit
@@ -295,7 +297,7 @@ export default function LoginPage() {
             <Separator className="flex-1" />
           </motion.div>
 
-          <motion.div {...stagger(7)} className="grid grid-cols-2 gap-2.5">
+          <motion.div {...stagger(7)} className={discordEnabled ? 'grid grid-cols-2 gap-2.5' : 'grid grid-cols-1 gap-2.5'}>
             <Button
               type="button"
               variant="outline"
@@ -310,20 +312,22 @@ export default function LoginPage() {
               )}
               Google
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 gap-2 text-xs bg-card/40 hover:bg-card/70 border-border/60"
-              onClick={handleDiscordLogin}
-              disabled={awaitingDiscord}
-            >
-              {awaitingDiscord ? (
-                <IconLoader2 size={16} className="animate-spin" />
-              ) : (
-                <IconBrandDiscord size={16} />
-              )}
-              Discord
-            </Button>
+            {discordEnabled && (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 gap-2 text-xs bg-card/40 hover:bg-card/70 border-border/60"
+                onClick={handleDiscordLogin}
+                disabled={awaitingDiscord}
+              >
+                {awaitingDiscord ? (
+                  <IconLoader2 size={16} className="animate-spin" />
+                ) : (
+                  <IconBrandDiscord size={16} />
+                )}
+                Discord
+              </Button>
+            )}
           </motion.div>
 
           <motion.p

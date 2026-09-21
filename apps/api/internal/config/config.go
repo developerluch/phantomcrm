@@ -296,11 +296,8 @@ func (c *Config) MustValidateAPI() {
 	if c.DatabaseURL == "" {
 		log.Fatal("DATABASE_URL is required")
 	}
-	if c.DiscordToken == "" {
-		log.Fatal("DISCORD_TOKEN is required (REST-only Discord session for /api/v1/discord/*)")
-	}
-	if c.GuildID == "" {
-		log.Fatal("GUILD_ID is required (REST-only Discord session for /api/v1/discord/*)")
+	if c.DiscordToken == "" || c.GuildID == "" {
+		log.Println("WARNING: DISCORD_TOKEN and/or GUILD_ID not set — Discord features disabled (bot-only routes, Discord sign-in membership check)")
 	}
 	if c.ResendAPIKey == "" {
 		log.Println("WARNING: RESEND_API_KEY not set — email features disabled")

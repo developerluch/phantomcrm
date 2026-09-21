@@ -29,7 +29,7 @@ cp apps/desktop/.env.example apps/desktop/.env
 npm run dev
 ```
 
-The Vite development server proxies `/api` to `VITE_PROXY_TARGET`. The API requires PostgreSQL, a JWT secret, and Discord configuration before it can start; optional integrations remain disabled when their variables are unset.
+The Vite development server proxies `/api` to `VITE_PROXY_TARGET`. The API requires PostgreSQL and a JWT secret before it can start; Discord and the other integrations are optional and remain disabled when their variables are unset.
 
 ## Verification
 

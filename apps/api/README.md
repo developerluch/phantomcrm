@@ -8,4 +8,4 @@ go test ./...
 go run ./cmd/api
 ```
 
-Only `DATABASE_URL`, `JWT_SECRET`, `DISCORD_TOKEN`, and `GUILD_ID` are required for API startup. Optional providers remain disabled when their variables are unset.
+Only `DATABASE_URL` and `JWT_SECRET` are required for API startup. Discord (`DISCORD_TOKEN`, `GUILD_ID`, `DISCORD_CLIENT_ID`/`_SECRET`) and the other providers are optional and stay disabled when their variables are unset.
